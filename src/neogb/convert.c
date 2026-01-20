@@ -592,6 +592,9 @@ static void return_normal_forms_to_basis(
                 case 16:
                     bs->cf_16[bs->ld] = mat->cf_16[rows[i][COEFFS]];
                     break;
+                case 21:
+                    bs->cf_21[bs->ld] = mat->cf_21[rows[i][COEFFS]];
+                    break;
                 case 32:
                     bs->cf_32[bs->ld] = mat->cf_32[rows[i][COEFFS]];
                     break;
@@ -611,6 +614,9 @@ static void return_normal_forms_to_basis(
                     break;
                 case 16:
                     bs->cf_16[bs->ld] = NULL;
+                    break;
+                case 21:
+                    bs->cf_21[bs->ld] = NULL;
                     break;
                 case 32:
                     bs->cf_32[bs->ld] = NULL;
@@ -691,6 +697,9 @@ static void convert_sparse_matrix_rows_to_basis_elements(
                 break;
             case 16:
                 bs->cf_16[bl+k] = mat->cf_16[rows[i][COEFFS]];
+                break;
+            case 21:
+                bs->cf_21[bl+k] = mat->cf_21[rows[i][COEFFS]];
                 break;
             case 32:
                 bs->cf_32[bl+k] = mat->cf_32[rows[i][COEFFS]];
@@ -825,6 +834,9 @@ static void convert_sparse_matrix_rows_to_basis_elements_use_sht(
                 break;
             case 16:
                 bs->cf_16[bl+k] = mat->cf_16[rows[i][COEFFS]];
+                break;
+            case 21:
+                bs->cf_21[bl+k] = mat->cf_21[rows[i][COEFFS]];
                 break;
             case 32:
                 bs->cf_32[bl+k] = mat->cf_32[rows[i][COEFFS]];

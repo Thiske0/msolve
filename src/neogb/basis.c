@@ -42,6 +42,14 @@ static void free_basis_elements(
             bs->hm[i] = NULL;
         }
     }
+    if (bs->cf_21) {
+        for (i = 0; i < bs->ld; ++i) {
+            free(bs->cf_21[i]);
+            bs->cf_21[i]  = NULL;
+            free(bs->hm[i]);
+            bs->hm[i] = NULL;
+        }
+    }
     if (bs->cf_32) {
         for (i = 0; i < bs->ld; ++i) {
             free(bs->cf_32[i]);
@@ -111,6 +119,16 @@ void free_basis_without_hash_table(
         }
         free(bs->cf_16);
         bs->cf_16 = NULL;
+        free(bs->hm);
+        bs->hm  = NULL;
+    }
+    if (bs->cf_21) {
+        for (i = 0; i < bs->ld; ++i) {
+            free(bs->cf_21[i]);
+            free(bs->hm[i]);
+        }
+        free(bs->cf_21);
+        bs->cf_21 = NULL;
         free(bs->hm);
         bs->hm  = NULL;
     }
@@ -193,6 +211,9 @@ bs_t *initialize_basis(
         case 16:
             bs->cf_16  = (cf16_t **)malloc((unsigned long)bs->sz * sizeof(cf16_t *));
             break;
+        case 21:
+            bs->cf_21  = (cf21_t **)malloc((unsigned long)bs->sz * sizeof(cf21_t *));
+            break;
         case 32:
             bs->cf_32  = (cf32_t **)malloc((unsigned long)bs->sz * sizeof(cf32_t *));
             break;
@@ -234,6 +255,11 @@ void check_enlarge_basis(
                 bs->cf_16  = realloc(bs->cf_16,
                         (unsigned long)bs->sz * sizeof(cf16_t *));
                 memset(bs->cf_16+bs->ld, 0, (unsigned long)(bs->sz-bs->ld) * sizeof(cf16_t *));
+                break;
+            case 21:
+                bs->cf_21  = realloc(bs->cf_21,
+                        (unsigned long)bs->sz * sizeof(cf21_t *));
+                memset(bs->cf_21+bs->ld, 0, (unsigned long)(bs->sz-bs->ld) * sizeof(cf21_t *));
                 break;
             case 32:
                 bs->cf_32  = realloc(bs->cf_32,
@@ -332,6 +358,48 @@ static inline void normalize_initial_basis_ff_16(
             row[j+1]  =   (cf16_t)tmp2;
             row[j+2]  =   (cf16_t)tmp3;
             row[j+3]  =   (cf16_t)tmp4;
+        }
+    }
+}
+
+/* finite field stuff  --  32 bit */
+static inline void normalize_initial_basis_ff_21(
+        bs_t *bs,
+       const uint32_t fc
+        )
+{
+    len_t i, j;
+    int64_t tmp1, tmp2, tmp3, tmp4;
+
+    cf32_t **cf       = bs->cf_21;
+    hm_t * const *hm  = bs->hm;
+    const bl_t ld     = bs->ld;
+
+    for (i = 0; i < ld; ++i) {
+        cf32_t *row = cf[hm[i][COEFFS]];
+
+        const uint32_t inv  = mod_p_inverse_21((int64_t)row[0], (int64_t)fc);
+        const len_t os      = hm[i][PRELOOP]; 
+        const len_t len     = hm[i][LENGTH]; 
+
+        for (j = 0; j < os; ++j) {
+            tmp1    =   ((int64_t)row[j] * inv) % fc;
+            tmp1    +=  (tmp1 >> 63) & fc;
+            row[j]  =   (cf32_t)tmp1;
+        }
+        for (j = os; j < len; j += UNROLL) {
+            tmp1      =   ((int64_t)row[j] * inv) % fc;
+            tmp2      =   ((int64_t)row[j+1] * inv) % fc;
+            tmp3      =   ((int64_t)row[j+2] * inv) % fc;
+            tmp4      =   ((int64_t)row[j+3] * inv) % fc;
+            tmp1      +=  (tmp1 >> 63) & fc;
+            tmp2      +=  (tmp2 >> 63) & fc;
+            tmp3      +=  (tmp3 >> 63) & fc;
+            tmp4      +=  (tmp4 >> 63) & fc;
+            row[j]    =   (cf32_t)tmp1;
+            row[j+1]  =   (cf32_t)tmp2;
+            row[j+2]  =   (cf32_t)tmp3;
+            row[j+3]  =   (cf32_t)tmp4;
         }
     }
 }
@@ -442,6 +510,17 @@ bs_t *copy_basis_mod_p(
                     (cf16_t *)malloc((unsigned long)(gbs->hm[i][LENGTH]) * sizeof(cf16_t));
                 for (j = 0; j < gbs->hm[i][LENGTH]; ++j) {
                     bs->cf_16[idx][j] = (cf16_t)mpz_fdiv_ui(gbs->cf_qq[idx][j], prime);
+                }
+            }
+            break;
+        case 21:
+            bs->cf_21   = (cf21_t **)malloc((unsigned long)bs->sz * sizeof(cf21_t *));
+            for (i = 0; i < bs->ld; ++i) {
+                idx = gbs->hm[i][COEFFS];
+                bs->cf_21[idx]  =
+                    (cf21_t *)malloc((unsigned long)(gbs->hm[i][LENGTH]) * sizeof(cf21_t));
+                for (j = 0; j < gbs->hm[i][LENGTH]; ++j) {
+                    bs->cf_21[idx][j] = (cf21_t)mpz_fdiv_ui(gbs->cf_qq[idx][j], prime);
                 }
             }
             break;

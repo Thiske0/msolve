@@ -151,6 +151,53 @@ void sort_terms_ff_16(
   *hmp  = hm;
 }
 
+void sort_terms_ff_21(
+    cf21_t **cfp,
+    hm_t **hmp,
+    ht_t *ht
+    )
+{
+  cf21_t *cf  = *cfp;
+  hm_t *hm    = *hmp;
+  hm_t *hmo   = hm+OFFSET;
+
+  const len_t len = hm[LENGTH];
+
+  len_t i, j, k;
+
+  hm_t tmphm    = 0;
+  cf21_t tmpcf  = 0;
+  /* generate array of pointers to hm entries */
+  hm_t *phm[len];
+  for (i = 0; i < len; ++i) {
+    phm[i]  = &hmo[i];
+  }
+
+  /* sort pointers to hm entries -> getting permutations */
+  sort_r(phm, (unsigned long)len, sizeof(phm[0]), initial_gens_cmp, ht);
+
+  /* sort cf and hm using permutations stored in phm */
+  for (i = 0; i < len; ++i) {
+    if (i != phm[i]-hmo) {
+      tmpcf = cf[i];
+      tmphm = hmo[i];
+      k     = i;
+      while (i != (j = phm[k]-hmo)) {
+        cf[k]   = cf[j];
+        hmo[k]  = hmo[j];
+        phm[k]  = &hmo[k];
+        k       = j;
+      }
+      cf[k]   = tmpcf;
+      hmo[k]  = tmphm;
+      phm[k]  = &hmo[k];
+    }
+  }
+
+  *cfp  = cf;
+  *hmp  = hm;
+}
+
 void sort_terms_ff_32(
     cf32_t **cfp,
     hm_t **hmp,
@@ -266,6 +313,7 @@ void import_input_data(
 
     cf8_t *cf8      =   NULL;
     cf16_t *cf16    =   NULL;
+    cf21_t *cf21    =   NULL;
     cf32_t *cf32    =   NULL;
     mpz_t *cfq      =   NULL;
     int32_t *cfs_ff =   NULL;
@@ -348,6 +396,24 @@ void import_input_data(
                         cf16[j-off] =   (cf16_t)(cfs_ff[j] % fc);
                     }
                     sort_terms_ff_16(&(bs->cf_16[ctr]), &(bs->hm[ctr]), ht);
+                    ctr++;
+                }
+                off +=  lens[i];
+            }
+            break;
+        case 21:
+            cfs_ff  =   (int32_t *)vcfs;
+            for (i = start; i < stop; ++i) {
+                if (invalid_gens == NULL || invalid_gens[i] == 0) {
+                    cf21    = (cf21_t *)malloc((unsigned long)(lens[i]) * sizeof(cf21_t));
+                    bs->cf_21[ctr] = cf21;
+
+                    for (j = off; j < off+lens[i]; ++j) {
+                        /* make coefficient positive */
+                        cfs_ff[j]   +=  (cfs_ff[j] >> 31) & fc;
+                        cf21[j-off] =   (cf21_t)(cfs_ff[j] % fc);
+                    }
+                    sort_terms_ff_21(&(bs->cf_21[ctr]), &(bs->hm[ctr]), ht);
                     ctr++;
                 }
                 off +=  lens[i];
@@ -562,6 +628,11 @@ static int64_t export_data(
                     ((int32_t *)cf+cc)[j] = (int32_t)bs->cf_16[bs->hm[bi][COEFFS]][j];
                 }
                 break;
+            case 21:
+                for (j = 0; j < len[cl]; ++j) {
+                    ((int32_t *)cf+cc)[j] = (int32_t)bs->cf_21[bs->hm[bi][COEFFS]][j];
+                }
+                break;
             case 32:
                 for (j = 0; j < len[cl]; ++j) {
                     ((int32_t *)cf+cc)[j] = (int32_t)bs->cf_32[bs->hm[bi][COEFFS]][j];
@@ -626,6 +697,8 @@ void set_ff_bits(md_t *st, int32_t fc){
         } else {
             if (fc < (int32_t)(1) << 16) {
                 st->ff_bits = 16;
+            } else if (fc < (int32_t)(1) << 21) {
+                st->ff_bits = 21;
             } else {
                 if (fc < (int32_t)(1) << 23) {
                     st->ff_bits = 32;
@@ -986,6 +1059,31 @@ void set_function_pointers(
       normalize_initial_basis = normalize_initial_basis_ff_16;
       break;
 
+    case 21:
+      switch (st->laopt) {
+        case 1:
+          linear_algebra  = exact_sparse_dense_linear_algebra_ff_21;
+          break;
+        case 2:
+          linear_algebra  = exact_sparse_linear_algebra_ff_21;
+          break;
+        case 42:
+          linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_21;
+          break;
+        case 43:
+          linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_21_2;
+          break;
+        case 44:
+          linear_algebra  = probabilistic_sparse_linear_algebra_ff_21;
+          break;
+        default:
+          linear_algebra  = exact_sparse_linear_algebra_ff_21;
+      }
+      exact_linear_algebra    = exact_sparse_linear_algebra_ff_21;
+      interreduce_matrix_rows = interreduce_matrix_rows_ff_21;
+      normalize_initial_basis = normalize_initial_basis_ff_21;
+      break;
+
     case 32:
       switch (st->laopt) {
         case 1:
@@ -1175,6 +1273,29 @@ static inline void reset_function_pointers(
               default:
                 linear_algebra  = exact_sparse_linear_algebra_ff_16;
             }
+        } else if (prime < (int32_t)(1) << 21) {
+            exact_linear_algebra    = exact_sparse_linear_algebra_ff_21;
+            interreduce_matrix_rows = interreduce_matrix_rows_ff_21;
+            normalize_initial_basis = normalize_initial_basis_ff_21;
+            switch (laopt) {
+              case 1:
+                linear_algebra  = exact_sparse_dense_linear_algebra_ff_21;
+                break;
+              case 2:
+                linear_algebra  = exact_sparse_linear_algebra_ff_21;
+                break;
+              case 42:
+                linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_21;
+                break;
+              case 43:
+                linear_algebra  = probabilistic_sparse_dense_linear_algebra_ff_21_2;
+                break;
+              case 44:
+                linear_algebra  = probabilistic_sparse_linear_algebra_ff_21;
+                break;
+              default:
+                linear_algebra  = exact_sparse_linear_algebra_ff_21;
+            }
         } else {
             exact_linear_algebra    = exact_sparse_linear_algebra_ff_32;
             interreduce_matrix_rows = interreduce_matrix_rows_ff_32;
@@ -1238,12 +1359,13 @@ static inline void reset_trace_function_pointers(
             normalize_initial_basis     = normalize_initial_basis_ff_16;
             application_linear_algebra  = exact_application_sparse_linear_algebra_ff_16;
             trace_linear_algebra        = exact_trace_sparse_linear_algebra_ff_16;
-        } else {
-            exact_linear_algebra        = exact_sparse_linear_algebra_ff_32;
-            interreduce_matrix_rows     = interreduce_matrix_rows_ff_32;
-            normalize_initial_basis     = normalize_initial_basis_ff_32;
-            application_linear_algebra  = exact_application_sparse_linear_algebra_ff_32;
-            trace_linear_algebra        = exact_trace_sparse_linear_algebra_ff_32;
+        } else if (prime < (int32_t)(1) << 21) {
+            exact_linear_algebra        = exact_sparse_linear_algebra_ff_21;
+            interreduce_matrix_rows     = interreduce_matrix_rows_ff_21;
+            normalize_initial_basis     = normalize_initial_basis_ff_21;
+            application_linear_algebra  = exact_application_sparse_linear_algebra_ff_21;
+            trace_linear_algebra        = exact_trace_sparse_linear_algebra_ff_21;
+
             if (prime < (int32_t)(1) << 18) {
                 reduce_dense_row_by_all_pivots_ff_32 =
                     reduce_dense_row_by_all_pivots_17_bit;
@@ -1255,18 +1377,24 @@ static inline void reset_trace_function_pointers(
                     reduce_dense_row_by_known_pivots_sparse_17_bit;
                 reduce_dense_row_by_dense_new_pivots_ff_32  =
                     reduce_dense_row_by_dense_new_pivots_17_bit;
-            } else {
-                reduce_dense_row_by_all_pivots_ff_32 =
-                  reduce_dense_row_by_all_pivots_31_bit;
-                reduce_dense_row_by_old_pivots_ff_32 =
-                  reduce_dense_row_by_old_pivots_31_bit;
-                trace_reduce_dense_row_by_known_pivots_sparse_ff_32 =
-                  trace_reduce_dense_row_by_known_pivots_sparse_31_bit;
-                reduce_dense_row_by_known_pivots_sparse_ff_32 =
-                  reduce_dense_row_by_known_pivots_sparse_31_bit;
-                reduce_dense_row_by_dense_new_pivots_ff_32  =
-                  reduce_dense_row_by_dense_new_pivots_31_bit;
             }
+        } else {
+            exact_linear_algebra        = exact_sparse_linear_algebra_ff_32;
+            interreduce_matrix_rows     = interreduce_matrix_rows_ff_32;
+            normalize_initial_basis     = normalize_initial_basis_ff_32;
+            application_linear_algebra  = exact_application_sparse_linear_algebra_ff_32;
+            trace_linear_algebra        = exact_trace_sparse_linear_algebra_ff_32;
+            
+            reduce_dense_row_by_all_pivots_ff_32 =
+                reduce_dense_row_by_all_pivots_31_bit;
+            reduce_dense_row_by_old_pivots_ff_32 =
+                reduce_dense_row_by_old_pivots_31_bit;
+            trace_reduce_dense_row_by_known_pivots_sparse_ff_32 =
+                trace_reduce_dense_row_by_known_pivots_sparse_31_bit;
+            reduce_dense_row_by_known_pivots_sparse_ff_32 =
+                reduce_dense_row_by_known_pivots_sparse_31_bit;
+            reduce_dense_row_by_dense_new_pivots_ff_32  =
+                reduce_dense_row_by_dense_new_pivots_31_bit;
         }
     }
 

@@ -1917,8 +1917,13 @@ void set_linear_function_pointer(int32_t fc) {
     else{
       if(fc < (int32_t)(1) << 16){
         nbits = 16;
-      } else
-        nbits = 32;
+      } else {
+        if(fc < (int32_t)(1) << 21){
+          nbits = 21;
+        } else {
+          nbits = 32;
+        }
+      }
     }
   }
   switch (nbits) {
@@ -1933,6 +1938,12 @@ void set_linear_function_pointer(int32_t fc) {
     check_and_set_linear_poly = check_and_set_linear_poly_16;
     copy_poly_in_matrix_from_bs = copy_poly_in_matrix_from_bs_16;
     copy_nf_in_matrix_from_bs = copy_nf_in_matrix_from_bs_16;
+    break;
+  case 21:
+    set_linear_poly = set_linear_poly_21;
+    check_and_set_linear_poly = check_and_set_linear_poly_21;
+    copy_poly_in_matrix_from_bs = copy_poly_in_matrix_from_bs_21;
+    copy_nf_in_matrix_from_bs = copy_nf_in_matrix_from_bs_21;
     break;
   case 32:
     set_linear_poly = set_linear_poly_32;

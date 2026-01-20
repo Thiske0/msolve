@@ -70,6 +70,7 @@ static inline omp_int_t omp_get_max_threads(void) { return 1;}
 /* computational data */
 typedef uint8_t cf8_t;   /* coefficient type finite field (8 bit) */
 typedef uint16_t cf16_t; /* coefficient type finite field (16 bit) */
+typedef uint32_t cf21_t; /* coefficient type finite field (21 bit) */
 typedef uint32_t cf32_t; /* coefficient type finite field (32 bit) */
 typedef uint32_t val_t;  /* core values like hashes */
 typedef val_t hi_t;      /* index of hash table entries*/
@@ -192,6 +193,7 @@ struct bs_t
     sm_t *sm;       /* signatures for F5-style computations */
     si_t *si;       /* signatures index for F5-style computations */
     cf8_t **cf_8;   /* coefficients for finite fields (8 bit) */
+    cf21_t **cf_21; /* coefficients for finite fields (21 bit) */
     cf16_t **cf_16; /* coefficients for finite fields (16 bit) */
     cf32_t **cf_32; /* coefficients for finite fields (32 bit) */
     mpz_t **cf_qq;  /* coefficients for rationals (always multiplied such that
@@ -215,6 +217,7 @@ struct mat_t
                         /* to coefficient arrays. */
     cf8_t **cf_8;       /* coefficients for finite fields (8 bit) */
     cf16_t **cf_16;     /* coefficients for finite fields (16 bit) */
+    cf21_t **cf_21;     /* coefficients for finite fields (21 bit) */
     cf32_t **cf_32;     /* coefficients for finite fields (32 bit) */
     mpz_t **cf_qq;      /* coefficients for rationals */
     mpz_t **cf_ab_qq;   /* coefficients for rationals */

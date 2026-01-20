@@ -126,6 +126,8 @@ static void clear_matrix(
     mat->cf_8 = NULL;
     free(mat->cf_16);
     mat->cf_16  = NULL;
+    free(mat->cf_21);
+    mat->cf_21  = NULL;
     free(mat->cf_32);
     mat->cf_32  = NULL;
     free(mat->cf_qq);
@@ -700,7 +702,7 @@ bs_t *core_f4(
             md->max_bht_size : bs->ht->esz;
 
         done = preprocessing(mat, bs, md);
-
+        
         if (!done) {
             done = compute_new_elements(mat, bs, md, errp);
         }

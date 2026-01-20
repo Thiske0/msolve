@@ -93,6 +93,35 @@ static inline uint16_t mod_p_inverse_16(
     return (uint16_t)d;
 }
 
+static inline uint32_t mod_p_inverse_21(
+        const int64_t val,
+        const int64_t p
+        )
+{
+    int64_t a, b, c, d, e, f;
+    a =   p;
+    b =   val % p;
+    /* if b < 0 we shift correspondingly */
+    b +=  (b >> 63) & p;
+    c =   1;
+    d =   0;
+
+    while (b != 0) {
+        f = b;
+        e = a/f;
+        b = a - e*f;
+        a = f;
+        f = c;
+        c = d - e*f;
+        d = f;
+    }
+
+    /* if d < 0 we shift correspondingly */
+    d +=  (d >> 63) & p;
+
+    return d;
+}
+
 static inline uint32_t mod_p_inverse_32(
         const int64_t val,
         const int64_t p

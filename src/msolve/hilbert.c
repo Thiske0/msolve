@@ -1152,6 +1152,69 @@ len is the length of the pol
 
  **/
 
+static inline void copy_poly_in_matrix_from_bs_21(sp_matfglm_t* matrix,
+                                               long nrows,
+                                               bs_t *bs,
+                                               ht_t *ht,
+                                               long idx, long len,
+                                               long start, long pos,
+                                               int32_t *lmb,
+                                               const int nv,
+                                               const long fc){
+  int32_t j;
+  long end = start + pos;
+
+  long N = nrows * (matrix->ncols) - (start + 1);
+  if((len) == matrix->ncols + 1){
+    const bl_t bi = bs->lmps[idx];
+    long k = 0;
+    for(j = start + 1; j < end; j++){
+      long ctmp  = bs->cf_21[bs->hm[bi][COEFFS]][len - k - 1];
+      k++;
+      matrix->dense_mat[N + j] = fc - ctmp;
+    }
+  }
+  else{
+    if(1==0 && is_equal_exponent_dm(bs, ht, idx, 1,
+                            lmb+((end-start-2)*nv),
+                            nv)){
+      const bl_t bi = bs->lmps[idx];
+      long k = 0;
+      for(j = start + 1; j < end; j++){
+        long ctmp  = bs->cf_21[bs->hm[bi][COEFFS]][len - k];
+        k++;
+        matrix->dense_mat[N + j] = fc - ctmp; //bcf[(end + start) - j];
+      }
+    }
+    else{
+      long i;
+      long N = nrows * matrix->ncols ;
+      long k = 0;
+
+      const bl_t bi = bs->lmps[idx];
+
+      for(i = 0; i < matrix->ncols; i++){
+        int boo = is_equal_exponent_dm(bs, ht, idx, len - k - 1, //pos-1-k,
+                                       lmb + i * nv,
+                                       nv);
+        if(boo){
+            long ctmp  = bs->cf_21[bs->hm[bi][COEFFS]][len - k - 1];
+            matrix->dense_mat[N + i] = fc - ctmp; //fc - bcf[end - 1 -  k];
+            k++;
+        }
+      }
+    }
+  }
+}
+
+
+/**
+
+idx is the position in the GB
+len is the length of the pol
+
+ **/
+
 static inline void copy_poly_in_matrix_from_bs_32(sp_matfglm_t* matrix,
                                                long nrows,
                                                bs_t *bs,
@@ -1252,6 +1315,32 @@ static inline void copy_nf_in_matrix_from_bs_16(sp_matfglm_t* matrix,
     while(k < len) {
       if(is_equal_exponent_bs(bht,hm[len-1-k],evi,lmb + i * nv,nv)){
 	matrix->dense_mat[N + i] = tbr->cf_16[tbr->hm[idx][COEFFS]][len-1-k];
+	k++;
+      }
+      i++;
+    }
+  }
+}
+
+static inline void copy_nf_in_matrix_from_bs_21(sp_matfglm_t* matrix,
+						long nrows,
+						long pos,
+						int32_t *lmb,
+						const bs_t * const tbr,
+						const ht_t * const bht,
+						int32_t * evi,
+						const md_t *st,
+						const int nv){
+  len_t idx = tbr->lmps[pos];
+  if (tbr->hm[idx] != NULL) { /* copy only for a nonzero polynomial */
+    len_t * hm = tbr->hm[idx]+OFFSET;
+    len_t len = tbr->hm[idx][LENGTH];
+    long N = nrows * matrix->ncols ;
+    long i = 0;
+    long k = 0;
+    while(k < len) {
+      if(is_equal_exponent_bs(bht,hm[len-1-k],evi,lmb + i * nv,nv)){
+	matrix->dense_mat[N + i] = tbr->cf_21[tbr->hm[idx][COEFFS]][len-1-k];
 	k++;
       }
       i++;
