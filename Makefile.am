@@ -15,9 +15,11 @@ check_PROGRAMS		= neogb_io \
 
 checkdiff               = test/diff/diff_cp_d_3_n_4_p_2.sh \
 			  test/diff/diff_cyclic5-16.sh \
+			  test/diff/diff_cyclic5-21.sh \
 			  test/diff/diff_cyclic5-31.sh \
 			  test/diff/diff_cyclic5-qq.sh \
 			  test/diff/diff_eco6-16.sh \
+			  test/diff/diff_eco6-21.sh \
 			  test/diff/diff_eco6-31.sh \
 			  test/diff/diff_eco6-qq.sh \
 			  test/diff/diff_groebner-g2.sh \
@@ -31,6 +33,7 @@ checkdiff               = test/diff/diff_cp_d_3_n_4_p_2.sh \
 			  test/diff/diff_kat6-31.sh \
 			  test/diff/diff_kat7-qq.sh \
 			  test/diff/diff_multy-16.sh \
+			  test/diff/diff_multy-21.sh \
 			  test/diff/diff_multy-31.sh \
 			  test/diff/diff_multy-qq.sh \
 			  test/diff/diff_nonradical_shape-qq.sh \
@@ -38,6 +41,7 @@ checkdiff               = test/diff/diff_cp_d_3_n_4_p_2.sh \
 			  test/diff/diff_nonradical_radicalshape-no-square-31.sh \
 			  test/diff/diff_nonradical_radicalshape-no-square-qq.sh \
 			  test/diff/diff_one-16.sh \
+			  test/diff/diff_one-21.sh \
 			  test/diff/diff_one-31.sh \
 			  test/diff/diff_one-qq.sh \
 			  test/diff/diff_radical_shape-31.sh \
@@ -60,6 +64,7 @@ checkdiff               = test/diff/diff_cp_d_3_n_4_p_2.sh \
 			  test/diff/diff_input-overflow-16.sh \
 			  test/diff/diff_nf_8.sh \
 			  test/diff/diff_nf_16.sh \
+			  test/diff/diff_nf_21.sh \
 			  test/diff/diff_nf_31.sh \
 			  test/diff/diff_nf_lm_bug.sh \
 			  test/diff/diff_f4sat-field-char.sh \

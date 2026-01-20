@@ -35,3 +35,11 @@ missing
 stamp-h1
 msolve.pc
 /msolve
+
+/fglm_build_matrixn_nonradical_radicalshape-31
+/fglm_build_matrixn_nonradical_shape-31
+/fglm_build_matrixn_radical_shape-31
+/line_endings_support
+/neogb_io
+/test-driver
+/*.ms

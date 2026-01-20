@@ -104,12 +104,18 @@ AC_CONFIG_LINKS([
  input_files/cyclic5-16.ms:input_files/cyclic5-16.ms
  output_files/cyclic5-16.res:output_files/cyclic5-16.res
  test/diff/diff_cyclic5-16.sh:test/diff/diff_cyclic5-16.sh
+ input_files/cyclic5-21.ms:input_files/cyclic5-21.ms
+ output_files/cyclic5-21.res:output_files/cyclic5-21.res
+ test/diff/diff_cyclic5-21.sh:test/diff/diff_cyclic5-21.sh
  input_files/cyclic5-31.ms:input_files/cyclic5-31.ms
  output_files/cyclic5-31.res:output_files/cyclic5-31.res
  test/diff/diff_cyclic5-31.sh:test/diff/diff_cyclic5-31.sh
  input_files/eco6-16.ms:input_files/eco6-16.ms
  output_files/eco6-16.res:output_files/eco6-16.res
  test/diff/diff_eco6-16.sh:test/diff/diff_eco6-16.sh
+ input_files/eco6-21.ms:input_files/eco6-21.ms
+ output_files/eco6-21.res:output_files/eco6-21.res
+ test/diff/diff_eco6-21.sh:test/diff/diff_eco6-21.sh
  input_files/eco6-31.ms:input_files/eco6-31.ms
  output_files/eco6-31.res:output_files/eco6-31.res
  test/diff/diff_eco6-31.sh:test/diff/diff_eco6-31.sh
@@ -157,6 +163,9 @@ AC_CONFIG_LINKS([
  input_files/multy-16.ms:input_files/multy-16.ms
  output_files/multy-16.res:output_files/multy-16.res
  test/diff/diff_multy-16.sh:test/diff/diff_multy-16.sh
+ input_files/multy-21.ms:input_files/multy-21.ms
+ output_files/multy-21.res:output_files/multy-21.res
+ test/diff/diff_multy-21.sh:test/diff/diff_multy-21.sh
  input_files/multy-31.ms:input_files/multy-31.ms
  output_files/multy-31.res:output_files/multy-31.res
  test/diff/diff_multy-31.sh:test/diff/diff_multy-31.sh
@@ -185,6 +194,9 @@ AC_CONFIG_LINKS([
  input_files/one-16.ms:input_files/one-16.ms
  output_files/one-16.res:output_files/one-16.res
  test/diff/diff_one-16.sh:test/diff/diff_one-16.sh
+ input_files/one-21.ms:input_files/one-21.ms
+ output_files/one-21.res:output_files/one-21.res
+ test/diff/diff_one-21.sh:test/diff/diff_one-21.sh
  input_files/kat8-qq-truncate.ms:input_files/kat8-qq-truncate.ms
  output_files/kat8-qq-truncate.res:output_files/kat8-qq-truncate.res
  test/diff/diff_truncate_gb.sh:test/diff/diff_truncate_gb.sh
@@ -262,6 +274,9 @@ AC_CONFIG_LINKS([
  input_files/nf-16.ms:input_files/nf-16.ms
  output_files/nf-16.res:output_files/nf-16.res
  test/diff/diff_nf_16.sh:test/diff/diff_nf_16.sh
+ input_files/nf-21.ms:input_files/nf-21.ms
+ output_files/nf-21.res:output_files/nf-21.res
+ test/diff/diff_nf_21.sh:test/diff/diff_nf_21.sh
  input_files/nf-31.ms:input_files/nf-31.ms
  output_files/nf-31.res:output_files/nf-31.res
  test/diff/diff_nf_31.sh:test/diff/diff_nf_31.sh
