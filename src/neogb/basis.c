@@ -362,44 +362,35 @@ static inline void normalize_initial_basis_ff_16(
     }
 }
 
-/* finite field stuff  --  32 bit */
+/* finite field stuff  --  21 bit */
 static inline void normalize_initial_basis_ff_21(
         bs_t *bs,
        const uint32_t fc
         )
 {
     len_t i, j;
-    int64_t tmp1, tmp2, tmp3, tmp4;
+    double tmp1, tmp2, tmp3, tmp4;
+    const double fc_double = (double)fc;
 
-    cf32_t **cf       = bs->cf_21;
+    cf21_t **cf       = bs->cf_21;
     hm_t * const *hm  = bs->hm;
     const bl_t ld     = bs->ld;
 
     for (i = 0; i < ld; ++i) {
-        cf32_t *row = cf[hm[i][COEFFS]];
+        cf21_t *row = cf[hm[i][COEFFS]];
 
-        const uint32_t inv  = mod_p_inverse_21((int64_t)row[0], (int64_t)fc);
+        const uint32_t inv  = mod_p_inverse_21(row[0], fc_double);
         const len_t os      = hm[i][PRELOOP]; 
         const len_t len     = hm[i][LENGTH]; 
 
         for (j = 0; j < os; ++j) {
-            tmp1    =   ((int64_t)row[j] * inv) % fc;
-            tmp1    +=  (tmp1 >> 63) & fc;
-            row[j]  =   (cf32_t)tmp1;
+            row[j]    =   fmod(row[j] * inv, fc_double);
         }
         for (j = os; j < len; j += UNROLL) {
-            tmp1      =   ((int64_t)row[j] * inv) % fc;
-            tmp2      =   ((int64_t)row[j+1] * inv) % fc;
-            tmp3      =   ((int64_t)row[j+2] * inv) % fc;
-            tmp4      =   ((int64_t)row[j+3] * inv) % fc;
-            tmp1      +=  (tmp1 >> 63) & fc;
-            tmp2      +=  (tmp2 >> 63) & fc;
-            tmp3      +=  (tmp3 >> 63) & fc;
-            tmp4      +=  (tmp4 >> 63) & fc;
-            row[j]    =   (cf32_t)tmp1;
-            row[j+1]  =   (cf32_t)tmp2;
-            row[j+2]  =   (cf32_t)tmp3;
-            row[j+3]  =   (cf32_t)tmp4;
+            row[j]      =   fmod(row[j] * inv, fc_double);
+            row[j+1]      =   fmod(row[j+1] * inv, fc_double);
+            row[j+2]      =   fmod(row[j+2] * inv, fc_double);
+            row[j+3]      =   fmod(row[j+3] * inv, fc_double);
         }
     }
 }
