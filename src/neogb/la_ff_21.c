@@ -215,7 +215,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
         }
 #elif defined HAVE_AVX2
         const len_t len = dts[LENGTH];
-        const len_t os  = len % 4;
+        const len_t os  = len % 8;
         const hm_t * const ds  = dts + OFFSET;
         const double mul32 = dr[i];
         mulv  = _mm256_set1_pd(-mul32);
@@ -223,8 +223,12 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
             dr[ds[j]] -=  mul * cfs[j];
             dr[ds[j]] +=  (dr[ds[j]] < 0) * mod2;
         }
-        for (; j < len; j +=4) {
-            redv  = _mm256_loadu_pd((__m256d*)(cfs+j));
+        for (; j < len; j +=8) {
+            __m256 floats = _mm256_loadu_ps((__m256*)(cfs+j));
+            __m128 lo = _mm256_castps256_ps128(floats);
+            __m128 hi = _mm256_extractf128_ps(floats, 1);
+
+            redv = _mm256_cvtps_pd(lo);
             drv   = _mm256_setr_pd(
                 dr[ds[j]],
                 dr[ds[j+1]],
@@ -239,6 +243,22 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
             dr[ds[j+1]] = res[1];
             dr[ds[j+2]] = res[2];
             dr[ds[j+3]] = res[3];
+
+            redv = _mm256_cvtps_pd(hi);
+            drv   = _mm256_setr_pd(
+                dr[ds[j+4]],
+                dr[ds[j+5]],
+                dr[ds[j+6]],
+                dr[ds[j+7]]);
+
+            resv  = _mm256_fmadd_pd(mulv, redv, drv);
+            cmpv  = _mm256_cmp_pd(resv, zerov, _CMP_LT_OS);
+            rresv = _mm256_add_pd(resv, _mm256_and_pd(cmpv, mod2v));
+            _mm256_store_pd((__m256d*)(res), rresv);
+            dr[ds[j+4]] = res[0];
+            dr[ds[j+5]] = res[1];
+            dr[ds[j+6]] = res[2];
+            dr[ds[j+7]] = res[3];
         }
 #elif defined __aarch64__
        printf("__aarch64__ reduce_dense_row_by_known_pivots_sparse_ff_21 called\n");

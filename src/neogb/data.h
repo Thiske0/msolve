@@ -70,7 +70,7 @@ static inline omp_int_t omp_get_max_threads(void) { return 1;}
 /* computational data */
 typedef uint8_t cf8_t;   /* coefficient type finite field (8 bit) */
 typedef uint16_t cf16_t; /* coefficient type finite field (16 bit) */
-typedef double cf21_t; /* coefficient type finite field (21 bit) */
+typedef float cf21_t; /* coefficient type finite field (21 bit) */
 typedef uint32_t cf32_t; /* coefficient type finite field (32 bit) */
 typedef uint32_t val_t;  /* core values like hashes */
 typedef val_t hi_t;      /* index of hash table entries*/
