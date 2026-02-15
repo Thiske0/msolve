@@ -1,0 +1,20 @@
+lin alg / total (elapsed)
+
+kat12-31
+10.28 sec 12.37 sec
+9.54 sec 11.55 sec
+9.66 sec 11.72 sec
+
+
+kat12-21
+13.24 sec 15.40 sec
+12.89 sec 15.00 sec
+13.47 sec 15.54 sec
+
+
+kat14-31
+792.56 sec 831.08 sec
+
+
+kat14-21
+1022.04 sec 1063.31 sec

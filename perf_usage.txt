@@ -1,0 +1,12 @@
+alias perf='/usr/lib/linux-tools/6.8.0-100-generic/perf'
+alias hotspot='/home/mathis/Applications/hotspot-v1.5.1-x86_64.AppImage'
+export LD_LIBRARY_PATH=/mnt/c/Users/mathi/OneDrive/MA1_Sorbonne/courses/Project_CCA/msolve/src/neogb/.libs:$LD_LIBRARY_PATH
+
+make clean
+make CFLAGS="-g -O3"
+
+perf record -F 999 --call-graph dwarf -o ./kat12-21.perf -- .libs/msolve -v1 -l2 -g2 -f ./kat12-21.ms -o ./kat12-21_outb.ms
+
+hotspot kat12-21.perf > /dev/null 2>&1 &
+
+.libs/msolve -v1 -l2 -g2 -f ./kat12-21.ms -o ./kat12-21_outb.ms

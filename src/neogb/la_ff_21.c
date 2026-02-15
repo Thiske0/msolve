@@ -78,6 +78,19 @@ static inline cf21_t* normalize_sparse_matrix_row_ff_21(
     return row;
 }
 
+double fast_mod(double x, double mod, double inv_mod) {
+    double quotient = x * inv_mod;
+    double n = floor(quotient);
+    double result = x - n * mod;
+
+    // fix rounding error
+    if(result == mod) {
+        result = 0.0;
+    }
+
+    return result;
+}
+
 
 static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
         double *dr,
@@ -97,6 +110,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
     hm_t *dts;
     int64_t np = -1;
     const double mod           = (double)st->fc;
+    const double inv_mod       = 1.0 / mod;
     const double mod2          = (double)st->fc * st->fc;
     const len_t ncols           = mat->nc;
     const len_t ncl             = mat->ncl;
@@ -129,9 +143,11 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
     k = 0;
     for (i = dpiv; i < ncols; ++i) {
         if (dr[i] != 0) {
-            dr[i] = fmod(dr[i], mod);
+            dr[i] = fast_mod(dr[i], mod, inv_mod);
+            //dr[i] = fmod(dr[i], mod);
         }
-        if (dr[i] == 0) {
+        // check as uint64_t mode for 0 since -0.0 is never a value and double == is expensive
+        if (((uint64_t*) dr)[i] == 0) {
             continue;
         }
         if (pivs[i] == NULL) {
@@ -221,12 +237,22 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
         mulv  = _mm256_set1_pd(-mul32);
         for (j = 0; j < os; ++j) {
             dr[ds[j]] -=  mul * cfs[j];
-            dr[ds[j]] +=  (dr[ds[j]] < 0) * mod2;
+            // if statement seems to be faster
+            //dr[ds[j]] +=  (dr[ds[j]] < 0) * mod2;
+            if(dr[ds[j]] < 0) {
+                dr[ds[j]] += mod2;
+            }
         }
+        // try unrolling more
         for (; j < len; j +=8) {
-            __m256 floats = _mm256_loadu_ps((__m256*)(cfs+j));
-            __m128 lo = _mm256_castps256_ps128(floats);
-            __m128 hi = _mm256_extractf128_ps(floats, 1);
+            // __m256 floats = _mm256_loadu_ps((__m256*)(cfs+j));
+            // __m128 lo = _mm256_castps256_ps128(floats);
+            // __m128 hi = _mm256_extractf128_ps(floats, 1);
+
+
+            // below seems to be faster?
+            __m128 lo = _mm_loadu_ps(cfs + j);
+            __m128 hi = _mm_loadu_ps(cfs + j + 4);
 
             redv = _mm256_cvtps_pd(lo);
             drv   = _mm256_setr_pd(
@@ -234,6 +260,12 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
                 dr[ds[j+1]],
                 dr[ds[j+2]],
                 dr[ds[j+3]]);
+
+            // __m256i all_indices = _mm256_loadu_si256((__m256i*)(ds + j));
+            // __m128i low_indices = _mm256_castsi256_si128(all_indices);
+            // __m128i high_indices = _mm256_extractf128_si256(all_indices, 1);
+            // __m256i indices = _mm256_cvtepu32_epi64(low_indices);
+            // drv = _mm256_i64gather_pd(dr, indices, 8);
 
             resv  = _mm256_fmadd_pd(mulv, redv, drv);
             cmpv  = _mm256_cmp_pd(resv, zerov, _CMP_LT_OS);
@@ -250,6 +282,9 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
                 dr[ds[j+5]],
                 dr[ds[j+6]],
                 dr[ds[j+7]]);
+
+            // indices = _mm256_cvtepu32_epi64(high_indices);
+            // drv = _mm256_i64gather_pd(dr, indices, 8);
 
             resv  = _mm256_fmadd_pd(mulv, redv, drv);
             cmpv  = _mm256_cmp_pd(resv, zerov, _CMP_LT_OS);
