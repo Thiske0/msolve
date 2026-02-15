@@ -170,14 +170,13 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
         }
         cfs   = mcf[dts[COEFFS]];
 #if defined HAVE_AVX512_F
-        printf("AVX512 reduce_dense_row_by_known_pivots_sparse_ff_21 called\n");
         const len_t len = dts[LENGTH];
         const len_t os  = len % 16;
         const hm_t * const ds  = dts + OFFSET;
         const double mul32 = dr[i];
         mulv  = _mm512_set1_pd(-mul32);
         for (j = 0; j < os; ++j) {
-            dr[ds[j]] += mul * cfs[j];
+            dr[ds[j]] -= mul * cfs[j];
             if(dr[ds[j]] < 0) {
                 dr[ds[j]] += mod2;
             }
@@ -197,8 +196,8 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
             );
 
             resv  = _mm512_fmadd_pd(mulv, redv, drv);
-            cmpv  = _mm512_cmp_pd(resv, zerov, _CMP_LT_OS);
-            rresv = _mm512_add_pd(resv, _mm512_and_pd(cmpv, mod2v));
+            cmpv  = _mm512_cmp_pd_mask(resv, zerov, _CMP_LT_OS);
+            rresv = _mm512_mask_add_pd(resv, cmpv, resv, mod2v);
             _mm512_store_pd((__m512d*)(res), rresv);
             dr[ds[j]] = res[0];
             dr[ds[j+1]] = res[1];
@@ -209,7 +208,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
             dr[ds[j+6]] = res[6];
             dr[ds[j+7]] = res[7];
             
-            __m256 redv_float = _mm256_loadu_ps(cfs + j + 8);
+            redv_float = _mm256_loadu_ps(cfs + j + 8);
             redv = _mm512_cvtps_pd(redv_float);
             drv = _mm512_setr_pd(
                 dr[ds[j+8]],
@@ -223,8 +222,8 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
             );
 
             resv  = _mm512_fmadd_pd(mulv, redv, drv);
-            cmpv  = _mm512_cmp_pd(resv, zerov, _CMP_LT_OS);
-            rresv = _mm512_add_pd(resv, _mm512_and_pd(cmpv, mod2v));
+            cmpv  = _mm512_cmp_pd_mask(resv, zerov, _CMP_LT_OS);
+            rresv = _mm512_mask_add_pd(resv, cmpv, resv, mod2v);
             _mm512_store_pd((__m512d*)(res), rresv);
             dr[ds[j+8]] = res[0];
             dr[ds[j+9]] = res[1];
