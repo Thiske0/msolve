@@ -1,0 +1,37 @@
+                                                    ### Throughput / Latenct
+
+
+
+vcvtps2pd (%r10,%rcx,4),%ymm3                       ### 0.56 / 11
+vcvtps2pd %xmm0,%ymm0                               ### 1.02 / 7
+
+vmovhpd 0x0(%r13,%rsi,8),%xmm11,%xmm11              ### 1.04 / 7 (guess)
+vmovhpd 0x0(%r13,%r8,8),%xmm10,%xmm10               ### 1.04 / 7 (guess)
+
+vinsertf128 $0x1,%xmm11,%ymm10,%ymm10               ### ?    / ?
+vfmadd132pd %ymm9,%ymm10,%ymm3                      ### 0.5 / 4
+vcmpltpd %ymm6,%ymm3,%ymm10                         ### 0.5 / 4
+
+vaddpd %ymm10,%ymm3,%ymm3                           ### 0.5 / 4
+vmovlpd %xmm3,(%r9)                                 ### 0.54 / 7
+vmovhpd %xmm3,0x0(%r13,%r8,8)                       ### 1.04 / 7
+
+vextractf128 $0x1,%ymm3,%xmm3                       ### ?    / ?
+vmovlpd %xmm3,(%rdi)                                ### 0.54 / 7
+vmovhpd %xmm3,0x0(%r13,%rsi,8)                      ### 1.04 / 7
+
+vmovsd (%rdi),%xmm10                                ### 0.54 / 7 (guess)
+vmovhpd 0x0(%r13,%r8,8),%xmm3,%xmm3                 ### 1.04 / 7 (guess)
+vmovhpd 0x0(%r13,%rsi,8),%xmm10,%xmm10              ### 1.04 / 7 (guess)
+
+vinsertf128 $0x1,%xmm10,%ymm3,%ymm3                 ### ?    / ?
+vfmadd132pd %ymm9,%ymm3,%ymm0                       ### 0.5 / 4
+vcmpltpd %ymm6,%ymm0,%ymm3                          ### 0.5 / 4
+
+vaddpd %ymm3,%ymm0,%ymm0                            ### 0.5  / 4
+
+vmovlpd %xmm0,(%rcx)                                ### 0.54 / 7
+vmovhpd %xmm0,0x0(%r13,%r8,8)                       ### 1.04 / 7
+vextractf128 $0x1,%ymm0,%xmm0                       ### ?    / ?
+vmovlpd %xmm0,(%rdi)                                ### 0.54 / 7
+vmovhpd %xmm0,0x0(%r13,%rsi,8)                      ### 1.04 / 7
