@@ -129,8 +129,10 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
     __m512d zerov = _mm512_set1_pd(0);
     __m512d mod2v = _mm512_set1_pd(mod2);
 #elif defined HAVE_AVX2
-    double res[4] __attribute__((aligned(32)));
-    __m256d cmpv, redv, drv, mulv, prodv, resv, rresv;
+    double res1[4] __attribute__((aligned(32)));
+    double res2[4] __attribute__((aligned(32)));
+    __m256d cmpv1, redv1, drv1, mulv, resv1, rresv1;
+    __m256d cmpv2, redv2, drv2, resv2, rresv2;
     __m256d zerov= _mm256_set1_pd(0);
     __m256d mod2v = _mm256_set1_pd(mod2);
 #elif defined __aarch64__
@@ -245,55 +247,37 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
         }
         // try unrolling more
         for (; j < len; j +=8) {
-            // __m256 floats = _mm256_loadu_ps((__m256*)(cfs+j));
-            // __m128 lo = _mm256_castps256_ps128(floats);
-            // __m128 hi = _mm256_extractf128_ps(floats, 1);
-
-
-            // below seems to be faster?
             __m128 lo = _mm_loadu_ps(cfs + j);
             __m128 hi = _mm_loadu_ps(cfs + j + 4);
-
-            redv = _mm256_cvtps_pd(lo);
-            drv   = _mm256_setr_pd(
+            redv1 = _mm256_cvtps_pd(lo);
+            redv2 = _mm256_cvtps_pd(hi);
+            drv1   = _mm256_setr_pd(
                 dr[ds[j]],
                 dr[ds[j+1]],
                 dr[ds[j+2]],
                 dr[ds[j+3]]);
-
-            // __m256i all_indices = _mm256_loadu_si256((__m256i*)(ds + j));
-            // __m128i low_indices = _mm256_castsi256_si128(all_indices);
-            // __m128i high_indices = _mm256_extractf128_si256(all_indices, 1);
-            // __m256i indices = _mm256_cvtepu32_epi64(low_indices);
-            // drv = _mm256_i64gather_pd(dr, indices, 8);
-
-            resv  = _mm256_fmadd_pd(mulv, redv, drv);
-            cmpv  = _mm256_cmp_pd(resv, zerov, _CMP_LT_OS);
-            rresv = _mm256_add_pd(resv, _mm256_and_pd(cmpv, mod2v));
-            _mm256_store_pd((__m256d*)(res), rresv);
-            dr[ds[j]] = res[0];
-            dr[ds[j+1]] = res[1];
-            dr[ds[j+2]] = res[2];
-            dr[ds[j+3]] = res[3];
-
-            redv = _mm256_cvtps_pd(hi);
-            drv   = _mm256_setr_pd(
+            drv2   = _mm256_setr_pd(
                 dr[ds[j+4]],
                 dr[ds[j+5]],
                 dr[ds[j+6]],
                 dr[ds[j+7]]);
 
-            // indices = _mm256_cvtepu32_epi64(high_indices);
-            // drv = _mm256_i64gather_pd(dr, indices, 8);
-
-            resv  = _mm256_fmadd_pd(mulv, redv, drv);
-            cmpv  = _mm256_cmp_pd(resv, zerov, _CMP_LT_OS);
-            rresv = _mm256_add_pd(resv, _mm256_and_pd(cmpv, mod2v));
-            _mm256_store_pd((__m256d*)(res), rresv);
-            dr[ds[j+4]] = res[0];
-            dr[ds[j+5]] = res[1];
-            dr[ds[j+6]] = res[2];
-            dr[ds[j+7]] = res[3];
+            resv1  = _mm256_fmadd_pd(mulv, redv1, drv1);
+            resv2  = _mm256_fmadd_pd(mulv, redv2, drv2);
+            cmpv1  = _mm256_cmp_pd(resv1, zerov, _CMP_LT_OS);
+            cmpv2  = _mm256_cmp_pd(resv2, zerov, _CMP_LT_OS);
+            rresv1 = _mm256_add_pd(resv1, _mm256_and_pd(cmpv1, mod2v));
+            rresv2 = _mm256_add_pd(resv2, _mm256_and_pd(cmpv2, mod2v));
+            _mm256_store_pd((__m256d*)(res1), rresv1);
+            _mm256_store_pd((__m256d*)(res2), rresv2);
+            dr[ds[j]] = res1[0];
+            dr[ds[j+1]] = res1[1];
+            dr[ds[j+2]] = res1[2];
+            dr[ds[j+3]] = res1[3];
+            dr[ds[j+4]] = res2[0];
+            dr[ds[j+5]] = res2[1];
+            dr[ds[j+6]] = res2[2];
+            dr[ds[j+7]] = res2[3];
         }
 #elif defined __aarch64__
        printf("__aarch64__ reduce_dense_row_by_known_pivots_sparse_ff_21 called\n");
