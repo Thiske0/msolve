@@ -423,7 +423,7 @@ void import_input_data(
             cfs_ff  =   (int32_t *)vcfs;
             for (i = start; i < stop; ++i) {
                 if (invalid_gens == NULL || invalid_gens[i] == 0) {
-                    cf32    = (cf32_t *)malloc((unsigned long)(lens[i]) * sizeof(cf32_t));
+                    cf32    = (cf32_t *)aligned_alloc(64, (unsigned long)(lens[i]) * sizeof(cf32_t));
                     bs->cf_32[ctr] = cf32;
 
                     for (j = off; j < off+lens[i]; ++j) {

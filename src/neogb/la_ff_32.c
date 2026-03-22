@@ -1096,16 +1096,11 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
         }
 #elif defined HAVE_AVX2
         const len_t len = dts[LENGTH];
-        const len_t os  = len % 8;
         const hm_t * const ds  = dts + OFFSET;
         const uint32_t mul32 = (uint32_t)(dr[i]);
         mulv  = _mm256_set1_epi32(mul32);
-        for (j = 0; j < os; ++j) {
-            dr[ds[j]] -=  mul * cfs[j];
-            dr[ds[j]] +=  (dr[ds[j]] >> 63) & mod2;
-        }
-        for (; j < len; j += 8) {
-            redv  = _mm256_loadu_si256((__m256i*)(cfs+j));
+        for (j = 0; j + 7 < len; j += 8) {
+            redv  = _mm256_load_si256((__m256i*)(cfs+j));
             drv   = _mm256_setr_epi64x(
                 dr[ds[j+1]],
                 dr[ds[j+3]],
@@ -1136,6 +1131,10 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
             dr[ds[j+2]] = res[1];
             dr[ds[j+4]] = res[2];
             dr[ds[j+6]] = res[3];
+        }
+        for (; j < len; ++j) {
+            dr[ds[j]] -=  mul * cfs[j];
+            dr[ds[j]] +=  (dr[ds[j]] >> 63) & mod2;
         }
 #elif defined __aarch64__
         const len_t len       = dts[LENGTH];
@@ -1220,7 +1219,7 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
     }
 
     hm_t *row   = (hm_t *)malloc((uint64_t)(k+OFFSET) * sizeof(hm_t));
-    cf32_t *cf  = (cf32_t *)malloc((uint64_t)(k) * sizeof(cf32_t));
+    cf32_t *cf  = (cf32_t *)aligned_alloc(64, (uint64_t)(k) * sizeof(cf32_t));
     j = 0;
     hm_t *rs  = row + OFFSET;
     for (i = ncl; i < ncols; ++i) {
