@@ -13,6 +13,8 @@
 *Makefile.in
 *.deps
 *.dirstamp
+*.perf
+*.perf.old
 aclocal.m4
 ar-lib
 autom4te.cache/

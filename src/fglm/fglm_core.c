@@ -482,7 +482,8 @@ Result is stored in res.
 vres will contain the product of the dense part.
 
  */
-static inline void sparse_mat_fglm_mult_vec(CF_t *res, sp_matfglm_t *mat,
+
+ static inline void sparse_mat_fglm_mult_vec(CF_t *res, sp_matfglm_t *mat,
                                             CF_t *vec,
                                             CF_t *vres,
                                             const mod_t prime,
@@ -783,6 +784,7 @@ static void generate_matrix_sequence(sp_matfglm_t *matxn, fglm_data_t *data,
 }
 #endif
 
+//TODO convert here to float and to the matrix vector product with floats
 static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
                                     szmat_t block_size, szmat_t dimquot,
                                     nvars_t* squvars,
