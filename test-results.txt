@@ -5,6 +5,11 @@ kat12-31
 9.54 sec 11.55 sec
 9.66 sec 11.72 sec
 
+kat12-31 alligned cfs
+8.83 sec 10.98 sec
+9.27 sec 11.49 sec
+8.57 sec 10.69 sec
+
 
 kat12-21
 13.24 sec 15.40 sec
