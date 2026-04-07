@@ -2235,13 +2235,13 @@ int msolve_trace_qq(mpz_param_t *mpz_paramp,
 
   uint32_t prime = 0;
   uint32_t primeinit = 0;
-  /* max prime "lprime" : this is previous_prime(1303905301) */
+  /* max prime "lprime" : this is previous_prime(1303905) */
   uint32_t lprime = 1303905299;
-  /* choose next_prime of some random number between 1<<30 and 1303905301 */
+  /* choose next_prime of some random number between 1<<30 and 1303905 */
   /* (roughly, there are ~ 10**7 such primes) */
-  prime = next_prime(rand() % (1303905301 - (1 << 30) + 1) + (1 << 30));
+  prime = next_prime(rand() % (1303905 - (1 << 21) + 1) + (1 << 21));
   while (gens->field_char == 0 && (is_lucky_prime_ui(prime, bs_qq) || is_member(prime, (*binit_primes)))) {
-    prime = next_prime(rand() % (1303905301 - (1 << 30) + 1) + (1 << 30));
+    prime = next_prime(rand() % (1303905 - (1 << 21) + 1) + (1 << 21));
   }
   primeinit = prime;
   lp->p[0] = primeinit;
@@ -2536,20 +2536,20 @@ int msolve_trace_qq(mpz_param_t *mpz_paramp,
     /* generate lucky prime numbers */
     prime = next_prime(prime);
     if (prime >= lprime) {
-      prime = next_prime(1 << 30);
+      prime = next_prime(1 << 21);
     }
     lp->p[0] = prime;
     while (is_lucky_prime_ui(prime, bs_qq) || is_member(prime, (*binit_primes))) {
       prime = next_prime(prime);
       if (prime >= lprime) {
-        prime = next_prime(1 << 30);
+        prime = next_prime(1 << 21);
       }
       lp->p[0] = prime;
     }
     for (len_t i = 1; i < st->nthrds; i++) {
       prime = next_prime(prime);
       if (prime >= lprime) {
-        prime = next_prime(1 << 30);
+        prime = next_prime(1 << 21);
       }
       lp->p[i] = prime;
       if(trace_det->lift_matrix){
@@ -2557,7 +2557,7 @@ int msolve_trace_qq(mpz_param_t *mpz_paramp,
              is_lucky_matmul_prime_ui(prime, trace_det)) {
               prime = next_prime(prime);
               if (prime >= lprime) {
-                  prime = next_prime(1 << 30);
+                  prime = next_prime(1 << 21);
               }
               lp->p[i] = prime;
           }
@@ -2566,7 +2566,7 @@ int msolve_trace_qq(mpz_param_t *mpz_paramp,
         while (is_lucky_prime_ui(prime, bs_qq) || prime == primeinit) {
           prime = next_prime(prime);
           if (prime >= lprime) {
-            prime = next_prime(1 << 30);
+            prime = next_prime(1 << 21);
           }
           lp->p[i] = prime;
         }
@@ -4760,9 +4760,9 @@ restart:
             trace_t *trace  = initialize_trace(bs_qq, st);
 
             uint32_t prime = next_prime(1<<30);
-            prime = next_prime(rand() % (1303905301 - (1<<30) + 1) + (1<<30));
+            prime = next_prime(rand() % (1303905 - (1<<30) + 1) + (1<<30));
             while(is_lucky_prime_ui(prime, bs_qq)){
-                prime = next_prime(rand() % (1303905301 - (1<<30) + 1) + (1<<30));
+                prime = next_prime(rand() % (1303905 - (1<<30) + 1) + (1<<30));
             }
 
             uint32_t primeinit = prime;
@@ -4943,10 +4943,10 @@ restart:
 
             st->tr = trace;
 
-            uint32_t prime = next_prime(1<<30);
-            prime = next_prime(rand() % (1303905301 - (1<<30) + 1) + (1<<30));
+            uint32_t prime = next_prime(1<<21);
+            prime = next_prime(rand() % (1303905 - (1<<21) + 1) + (1<<21));
             while(is_lucky_prime_ui(prime, bs_qq)){
-                prime = next_prime(rand() % (1303905301 - (1<<30) + 1) + (1<<30));
+                prime = next_prime(rand() % (1303905 - (1<<21) + 1) + (1<<21));
             }
 
             uint32_t primeinit = prime;
@@ -4995,7 +4995,7 @@ restart:
                 fprintf(stdout, "\nStarts trace based multi-modular computations\n");
             }
 
-            prime = next_prime(1<<30);
+            prime = next_prime(1<<21);
 
             lp->p[0]  = prime;
 
@@ -5028,7 +5028,7 @@ restart:
 
             ht_t *lht = copy_hash_table(bht);
 
-            prime = next_prime(1<<30);
+            prime = next_prime(1<<21);
 
             /* while(rerun == 1 || mcheck == 1){ */
 

@@ -214,6 +214,14 @@ uint64_t _mm256_hsum(__m256i a)
 uint32_t _nmod32_vec_dot_split_avx2(const uint32_t * vec1, const uint32_t * vec2, int64_t len,
                                     nmod_t mod, uint64_t pow2_precomp)
 {
+    uint32_t* vec1_int = malloc(sizeof(uint32_t)*len);
+    uint32_t* vec2_int = malloc(sizeof(uint32_t)*len);
+    for (int64_t i = 0; i < len; i++) {
+        vec1_int[i] = vec1[i];
+        vec2_int[i] = vec2[i];
+    }
+
+
     const __m256i low_bits = _mm256_set1_epi64x(__DOT_SPLIT_MASK);
     __m256i dp_lo0 = _mm256_setzero_si256();
     __m256i dp_hi0 = _mm256_setzero_si256();
@@ -222,14 +230,14 @@ uint32_t _nmod32_vec_dot_split_avx2(const uint32_t * vec1, const uint32_t * vec2
 
     for ( ; i+31 < len; i+=32)
     {
-        __m256i v1_0 = _mm256_loadu_si256((const __m256i *) (vec1+i+ 0));
-        __m256i v1_1 = _mm256_loadu_si256((const __m256i *) (vec1+i+ 8));
-        __m256i v1_2 = _mm256_loadu_si256((const __m256i *) (vec1+i+16));
-        __m256i v1_3 = _mm256_loadu_si256((const __m256i *) (vec1+i+24));
-        __m256i v2_0 = _mm256_loadu_si256((const __m256i *) (vec2+i+ 0));
-        __m256i v2_1 = _mm256_loadu_si256((const __m256i *) (vec2+i+ 8));
-        __m256i v2_2 = _mm256_loadu_si256((const __m256i *) (vec2+i+16));
-        __m256i v2_3 = _mm256_loadu_si256((const __m256i *) (vec2+i+24));
+        __m256i v1_0 = _mm256_loadu_si256((const __m256i *) (vec1_int+i+ 0));
+        __m256i v1_1 = _mm256_loadu_si256((const __m256i *) (vec1_int+i+ 8));
+        __m256i v1_2 = _mm256_loadu_si256((const __m256i *) (vec1_int+i+16));
+        __m256i v1_3 = _mm256_loadu_si256((const __m256i *) (vec1_int+i+24));
+        __m256i v2_0 = _mm256_loadu_si256((const __m256i *) (vec2_int+i+ 0));
+        __m256i v2_1 = _mm256_loadu_si256((const __m256i *) (vec2_int+i+ 8));
+        __m256i v2_2 = _mm256_loadu_si256((const __m256i *) (vec2_int+i+16));
+        __m256i v2_3 = _mm256_loadu_si256((const __m256i *) (vec2_int+i+24));
 
         // 1st term: low 32 bit word of each 64 bit word
         dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0));
@@ -269,8 +277,8 @@ uint32_t _nmod32_vec_dot_split_avx2(const uint32_t * vec1, const uint32_t * vec2
     // each iteration accumulates 2 terms in dp_lo0
     for ( ; i+7 < len; i+=8)
     {
-        __m256i v1_0 = _mm256_loadu_si256((const __m256i *) (vec1+i));
-        __m256i v2_0 = _mm256_loadu_si256((const __m256i *) (vec2+i));
+        __m256i v1_0 = _mm256_loadu_si256((const __m256i *) (vec1_int+i));
+        __m256i v2_0 = _mm256_loadu_si256((const __m256i *) (vec2_int+i));
 
         // 1st term: low 32 bit word of each 64 bit word
         dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0));
@@ -291,7 +299,7 @@ uint32_t _nmod32_vec_dot_split_avx2(const uint32_t * vec1, const uint32_t * vec2
 
     // less than 8 terms remaining, can accumulate
     for (; i < len; i++)
-        hsum_lo += (uint64_t)vec1[i] * vec2[i];
+        hsum_lo += (uint64_t)vec1_int[i] * vec2_int[i];
 
     hsum_hi += (hsum_lo >> __DOT_SPLIT_BITS);
     hsum_lo &= __DOT_SPLIT_MASK;
@@ -300,6 +308,8 @@ uint32_t _nmod32_vec_dot_split_avx2(const uint32_t * vec1, const uint32_t * vec2
     // ensures pow2_precomp * hsum_hi + hsum_lo fits in 64 bits
     uint64_t res;
     NMOD_RED(res, pow2_precomp * hsum_hi + hsum_lo, mod);
+    free(vec1_int);
+    free(vec2_int);
     return (uint32_t)res;
 }
 
@@ -628,26 +638,11 @@ static inline void _avx2_matrix_vector_product(uint32_t * vec_res,
     if (nrows > 2)
     {
 #pragma omp parallel for num_threads (st->nthrds) lastprivate(i)
-        for (i=0; i < nrows-2; i+=3)
+        for (i=0; i < nrows; i++)
         {
-            int64_t len = ncols - MIN(dst[i], MIN(dst[i+1], dst[i+2]));
-            _nmod32_vec_dot3_split_avx2(vec_res+i, vec,
-                                        mat + i*ncols,
-                                        mat + (i+1)*ncols,
-                                        mat + (i+2)*ncols,
-                                        len, mod, pow2_precomp);
+            vec_res[i] = _nmod32_vec_dot_split_avx2(vec, mat + i*ncols, ncols - dst[i], mod, pow2_precomp);
         }
     }
-
-    if (nrows - i == 2)
-    {
-        int64_t len = ncols - MIN(dst[i], dst[i+1]);
-        _nmod32_vec_dot2_split_avx2(vec_res+i, vec_res+i+1,
-                                    vec, mat + i*ncols, mat + (i+1)*ncols,
-                                    len, mod, pow2_precomp);
-    }
-    else if (nrows - i == 1)
-        vec_res[i] = _nmod32_vec_dot_split_avx2(vec, mat + i*ncols, ncols - dst[i], mod, pow2_precomp);
 }
 #endif
 

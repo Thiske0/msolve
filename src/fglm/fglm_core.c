@@ -792,6 +792,10 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
                                     nvars_t nvars,
                                     mod_t prime,
                                     md_t *st){
+  if(prime > 1<<22) {
+    printf("Warning: the prime is too large for the current implementation of the matrix vector product.\n");
+  }
+
   uint32_t RED_32 = ((uint64_t)2<<31) % prime;
 
   uint32_t RED_64 = ((uint64_t)1<<63) % prime;
@@ -808,9 +812,28 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
     data->res[j+matrix->ncols*block_size]
       = data->vecinit[squvars[nvars-1-j-dec]];
   }
+
+  typedef CF_t current;
+
+  current* vecinit_double = malloc(sizeof(current)*matrix->nrows);
+  current* vvec_double = malloc(sizeof(current)*matrix->nrows);
+  for(szmat_t i = 0; i < matrix->nrows; i++){
+    vecinit_double[i] = data->vecinit[i];
+  }
+
+  current* matrix_dense = malloc(sizeof(current)*matrix->nrows*matrix->ncols);
+  for(szmat_t i = 0; i < matrix->nrows; i++){
+    for(szmat_t j = 0; j < matrix->ncols; j++){
+      matrix_dense[i*matrix->ncols + j] = matrix->dense_mat[i*matrix->ncols + j];
+    }
+  }
+  CF_t * old_matrix_dense = matrix->dense_mat;
+  matrix->dense_mat = matrix_dense;
+  current* vecmult_double = malloc(sizeof(current)*matrix->ncols*matrix->nrows);
+
   for(szmat_t i = 1; i < matrix->ncols; i++){
     sparse_mat_fglm_mult_vec(data->vvec, matrix,
-                             data->vecinit, data->vecmult,
+                             data->vecinit, vecmult_double,
                              prime, RED_32, RED_64, preinv, pi1, pi2,
 			     st);
 #if DEBUGFGLM > 1
@@ -844,7 +867,7 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
   }
   for(szmat_t i = matrix->ncols; i < 2*matrix->ncols; i++){
     sparse_mat_fglm_mult_vec(data->vvec, matrix,
-                             data->vecinit, data->vecmult,
+                             data->vecinit, vecmult_double,
                              prime, RED_32, RED_64, preinv, pi1, pi2,
 			     st);
 #if DEBUGFGLM > 1
@@ -856,6 +879,9 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
     data->vecinit = data->vvec;
     data->vvec = tmp;
     data->res[i*block_size] = data->vecinit[0];
+    for(uint32_t i=0; i < matrix->nrows; i++){
+      data->vecmult[i] = vecmult_double[i];
+    }
 
 #if DEBUGFGLM > 1
     print_vec(stdout, data->res, 2*block_size * matrix->ncols);
@@ -872,7 +898,11 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
   for(ulong i = 0; i < 2 * dimquot; i++){
     data->pts[i] = data->res[i*block_size];
   }
-
+  matrix->dense_mat = old_matrix_dense;
+  free(matrix_dense);
+  free(vecinit_double);
+  free(vvec_double);
+  free(vecmult_double);
 }
 
 
@@ -1921,6 +1951,7 @@ guess_sequence_colon(sp_matfglmcol_t *matrix, fglm_data_t * data,
 
   szmat_t i = 1;
   szmat_t tentative_degree =  MIN (4,matrix->ncols);
+  printf("got here expect wrong results\n");
   /* printf ("tentative degree = %d\n",tentative_degree); */
   while (i <= 2*tentative_degree-1) {
     sparse_mat_fglm_colon_mult_vec(data->vvec, matrix,

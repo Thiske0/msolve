@@ -23,3 +23,15 @@ kat14-31
 
 kat14-21
 1022.04 sec 1063.31 sec
+
+
+kat11-qq (initial) (only total time) (elapsed / cpu)
+62.20 sec  63.57 sec
+64.13 sec  63.94 sec
+63.57 sec  63.44 sec
+
+
+kat11-qq (prime change) (only total time) (elapsed / cpu)
+75.27 sec  74.49 sec
+74.45 sec  74.45 sec
+74.73 sec  75.51 sec
