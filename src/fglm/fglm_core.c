@@ -813,8 +813,8 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
       = data->vecinit[squvars[nvars-1-j-dec]];
   }
 
-  double* vecinit_double = malloc(sizeof(double)*matrix->ncols);
-  double* vvec_double = malloc(sizeof(double)*matrix->ncols);
+  double* vecinit_double = aligned_alloc(64, sizeof(double)*matrix->ncols);
+  double* vvec_double = aligned_alloc(64, sizeof(double)*matrix->ncols);
   for(szmat_t i = 0; i < matrix->ncols; i++){
     vecinit_double[i] = data->vecinit[i];
     vvec_double[i] = data->vvec[i];
