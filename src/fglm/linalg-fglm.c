@@ -211,7 +211,7 @@ uint64_t _mm256_hsum(__m256i a)
     return (uint64_t) _mm_cvtsi128_si64(sum);
 }
 
-uint32_t _nmod32_vec_dot_split_avx2(const uint32_t * vec1, const uint32_t * vec2, int64_t len,
+double _nmod32_vec_dot_split_avx2(const double * vec1, const double * vec2, int64_t len,
                                     nmod_t mod, uint64_t pow2_precomp)
 {
     uint32_t* vec1_int = malloc(sizeof(uint32_t)*len);
@@ -623,9 +623,9 @@ void _nmod32_vec_dot3_split_avx2(uint32_t * res, const uint32_t * vec1,
     NMOD_RED(res[2], pow2_precomp * hsum_hi[2] + hsum_lo[2], mod);
 }
 
-static inline void _avx2_matrix_vector_product(uint32_t * vec_res,
-                                               const uint32_t * mat,
-                                               const uint32_t * vec,
+static inline void _avx2_matrix_vector_product(double * vec_res,
+                                               const double * mat,
+                                               const double * vec,
                                                const uint32_t * dst,
                                                const uint32_t ncols,
                                                const uint32_t nrows,
