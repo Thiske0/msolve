@@ -815,10 +815,11 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
 
   typedef CF_t current;
 
-  current* vecinit_double = malloc(sizeof(current)*matrix->nrows);
-  current* vvec_double = malloc(sizeof(current)*matrix->nrows);
-  for(szmat_t i = 0; i < matrix->nrows; i++){
+  current* vecinit_double = malloc(sizeof(current)*matrix->ncols);
+  current* vvec_double = malloc(sizeof(current)*matrix->ncols);
+  for(szmat_t i = 0; i < matrix->ncols; i++){
     vecinit_double[i] = data->vecinit[i];
+    vvec_double[i] = data->vvec[i];
   }
 
   current* matrix_dense = malloc(sizeof(current)*matrix->nrows*matrix->ncols);
@@ -832,28 +833,28 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
   current* vecmult_double = malloc(sizeof(current)*matrix->ncols*matrix->nrows);
 
   for(szmat_t i = 1; i < matrix->ncols; i++){
-    sparse_mat_fglm_mult_vec(data->vvec, matrix,
-                             data->vecinit, vecmult_double,
-                             prime, RED_32, RED_64, preinv, pi1, pi2,
-			     st);
+    sparse_mat_fglm_mult_vec(vvec_double, matrix,
+                            vecinit_double, vecmult_double,
+                            prime, RED_32, RED_64, preinv, pi1, pi2,
+     st);
 #if DEBUGFGLM > 1
     print_vec(stderr, data->vvec, matrix->ncols);
 #endif
 
 
-    CF_t *tmp = data->vecinit;
-    data->vecinit = data->vvec;
-    data->vvec = tmp;
-    data->res[i*block_size] = data->vecinit[0];
+    CF_t *tmp = vecinit_double;
+    vecinit_double = vvec_double;
+    vvec_double = tmp;
+    data->res[i*block_size] = vecinit_double[0];
 
     dec = 0;
     for(szmat_t j = 1; j < block_size; j++){
-      data->res[j+i*block_size] = data->vecinit[j+1];
+      data->res[j+i*block_size] = vecinit_double[j+1];
       while (linvars[nvars-1-j-dec] != 0) {
         dec++;
       }
       data->res[j+(i+matrix->ncols)*block_size]
-        = data->vecinit[squvars[nvars-1-j-dec]];
+        = vecinit_double[squvars[nvars-1-j-dec]];
     }
 
 #if DEBUGFGLM > 1
@@ -866,8 +867,8 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
 #endif
   }
   for(szmat_t i = matrix->ncols; i < 2*matrix->ncols; i++){
-    sparse_mat_fglm_mult_vec(data->vvec, matrix,
-                             data->vecinit, vecmult_double,
+    sparse_mat_fglm_mult_vec(vvec_double, matrix,
+                             vecinit_double, vecmult_double,
                              prime, RED_32, RED_64, preinv, pi1, pi2,
 			     st);
 #if DEBUGFGLM > 1
@@ -875,13 +876,10 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
 #endif
 
 
-    CF_t *tmp = data->vecinit;
-    data->vecinit = data->vvec;
-    data->vvec = tmp;
-    data->res[i*block_size] = data->vecinit[0];
-    for(uint32_t i=0; i < matrix->nrows; i++){
-      data->vecmult[i] = vecmult_double[i];
-    }
+    CF_t *tmp = vecinit_double;
+    vecinit_double = vvec_double;
+    vvec_double = tmp;
+    data->res[i*block_size] = vecinit_double[0];
 
 #if DEBUGFGLM > 1
     print_vec(stdout, data->res, 2*block_size * matrix->ncols);
@@ -891,6 +889,11 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
     fprintf(stderr, "res = ");
     print_vec(stdout, data->res+i*matrix->ncols, matrix->ncols);
 #endif
+  }
+  
+  for(szmat_t i = 0; i < matrix->ncols; i++){
+    data->vecinit[i] = vecinit_double[i];
+    data->vvec[i] = vvec_double[i];
   }
 
   /* now res contains our generating sequence */
