@@ -483,9 +483,9 @@ vres will contain the product of the dense part.
 
  */
 
- static inline void sparse_mat_fglm_mult_vec(double *res, sp_matfglm_t *mat,
-                                            double *vec,
-                                            double *vres,
+ static inline void sparse_mat_fglm_mult_vec(float *res, sp_matfglm_t *mat,
+                                            float *vec,
+                                            float *vres,
                                             const mod_t prime,
                                             //cf_l_t *vec_cache, //obsolete
                                             const uint32_t RED_32,
@@ -534,9 +534,9 @@ Result is stored in res.
 vres will contain the product of the dense part.
 
  */
-static inline void sparse_mat_fglm_colon_mult_vec(double *res, sp_matfglmcol_t *mat,
-						  double *vec,
-						  double *vres,
+static inline void sparse_mat_fglm_colon_mult_vec(float *res, sp_matfglmcol_t *mat,
+						  float *vec,
+						  float *vres,
 						  const mod_t prime,
 						  //cf_l_t *vec_cache, //obsolete
 						  const uint32_t RED_32,
@@ -813,14 +813,14 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
       = data->vecinit[squvars[nvars-1-j-dec]];
   }
 
-  double* vecinit_double = aligned_alloc(64, sizeof(double)*matrix->ncols);
-  double* vvec_double = aligned_alloc(64, sizeof(double)*matrix->ncols);
+  float* vecinit_double = aligned_alloc(64, sizeof(float)*matrix->ncols);
+  float* vvec_double = aligned_alloc(64, sizeof(float)*matrix->ncols);
   for(szmat_t i = 0; i < matrix->ncols; i++){
     vecinit_double[i] = data->vecinit[i];
     vvec_double[i] = data->vvec[i];
   }
 
-  double* matrix_dense = malloc(sizeof(double)*matrix->nrows*matrix->ncols);
+  float* matrix_dense = malloc(sizeof(float)*matrix->nrows*matrix->ncols);
   for(szmat_t i = 0; i < matrix->nrows; i++){
     for(szmat_t j = 0; j < matrix->ncols; j++){
       matrix_dense[i*matrix->ncols + j] = matrix->dense_mat[i*matrix->ncols + j];
@@ -828,7 +828,7 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
   }
   CF_t * old_matrix_dense = matrix->dense_mat;
   matrix->dense_mat = matrix_dense;
-  double* vecmult_double = malloc(sizeof(double)*matrix->ncols*matrix->nrows);
+  float* vecmult_double = malloc(sizeof(float)*matrix->ncols*matrix->nrows);
 
   for(szmat_t i = 1; i < matrix->ncols; i++){
     sparse_mat_fglm_mult_vec(vvec_double, matrix,
@@ -840,7 +840,7 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
 #endif
 
 
-    double *tmp = vecinit_double;
+    float *tmp = vecinit_double;
     vecinit_double = vvec_double;
     vvec_double = tmp;
     data->res[i*block_size] = vecinit_double[0];
@@ -874,7 +874,7 @@ static void generate_sequence_verif(sp_matfglm_t *matrix, fglm_data_t * data,
 #endif
 
 
-    double *tmp = vecinit_double;
+    float *tmp = vecinit_double;
     vecinit_double = vvec_double;
     vvec_double = tmp;
     data->res[i*block_size] = vecinit_double[0];
