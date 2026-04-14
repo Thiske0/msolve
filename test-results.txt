@@ -32,9 +32,9 @@ kat11-qq (initial) (only total time) (elapsed / cpu)
 
 
 kat11-qq (prime change) (only total time) (elapsed / cpu)
-75.27 sec  74.49 sec
-74.45 sec  74.45 sec
-74.73 sec  75.51 sec
+69.76 sec  69.88 sec
+68.46 sec  68.29 sec
+69.82 sec  69.79 sec
 
 kat11-qq (float version) (only total time) (elapsed / cpu)
 72.18 sec  72.14 sec
