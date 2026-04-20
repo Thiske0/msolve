@@ -1037,16 +1037,11 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
         cfs   = mcf[dts[COEFFS]];
 #if defined HAVE_AVX512_F
         const len_t len = dts[LENGTH];
-        const len_t os  = len % 16;
         const hm_t * const ds  = dts + OFFSET;
         const uint32_t mul32 = (int32_t)(dr[i]);
         mulv  = _mm512_set1_epi32(mul32);
-        for (j = 0; j < os; ++j) {
-            dr[ds[j]] -= mul * cfs[j];
-            dr[ds[j]] += (dr[ds[j]] >> 63) & mod2;
-        }
-        for (; j < len; j += 16) {
-            redv  = _mm512_loadu_si512((__m512i*)(cfs+j));
+        for (j = 0; j  + 15 < len; j += 16) {
+            redv  = _mm512_load_si512((__m512i*)(cfs+j));
             drv   = _mm512_setr_epi64(
                 dr[ds[j+1]],
                 dr[ds[j+3]],
@@ -1093,6 +1088,10 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_31_bit(
             dr[ds[j+10]] = res[5];
             dr[ds[j+12]] = res[6];
             dr[ds[j+14]] = res[7];
+        }
+        for (; j < len; ++j) {
+            dr[ds[j]] -= mul * cfs[j];
+            dr[ds[j]] += (dr[ds[j]] >> 63) & mod2;
         }
 #elif defined HAVE_AVX2
         const len_t len = dts[LENGTH];

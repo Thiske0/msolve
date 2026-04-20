@@ -1,0 +1,12 @@
+lin alg / total (elapsed)
+
+kat12-31 alligned cfs
+15.77 sec   18.05 sec 
+15.78 sec   18.06 sec
+15.79 sec   18.07 sec
+
+
+kat12-31 old
+18.07 sec  15.78 sec
+15.77 sec  18.05 sec
+15.78 sec  18.07 sec

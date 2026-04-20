@@ -1,5 +1,6 @@
 source ~/spack/share/spack/setup-env.sh
 spack load mpfr
+spack load flint
 export MPFR_ROOT=$(spack location -i mpfr)
 export FLINT_ROOT=$(spack location -i flint)
 
