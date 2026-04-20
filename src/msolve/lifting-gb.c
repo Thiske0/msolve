@@ -1304,9 +1304,9 @@ gb_modpoly_t *core_groebner_qq(
   uint32_t primeinit = 0;
   uint32_t lprime = 1303905299;
 
-  prime = next_prime(rand() % (1303905301 - (1<<30) + 1) + (1<<30));
+  prime = next_prime(rand() % (1303905 - (1<<21) + 1) + (1<<21));
   while(fc == 0 && is_lucky_prime_ui(prime, bs)){
-    prime = next_prime(rand() % (1303905301 - (1<<30) + 1) + (1<<30));
+    prime = next_prime(rand() % (1303905 - (1<<21) + 1) + (1<<21));
   }
 
   primeinit = prime;
@@ -1420,7 +1420,7 @@ gb_modpoly_t *core_groebner_qq(
 
 
     learn = 0;
-    prime = next_prime(rand() % (1303905301 - (1<<30) + 1) + (1<<30));
+    prime = next_prime(rand() % (1303905 - (1<<21) + 1) + (1<<21));
     if(info_level){
         fprintf(stdout, "New prime = %d\n", prime);
     }
@@ -1428,14 +1428,14 @@ gb_modpoly_t *core_groebner_qq(
 
       prime = next_prime(prime);
       if(prime >= lprime){
-        prime = next_prime(1<<30);
+        prime = next_prime(1<<21);
       }
       /* generate lucky prime numbers */
       msd->lp->p[0] = prime;
       while(is_lucky_prime_ui(prime, bs) || prime==primeinit){
         prime = next_prime(prime);
         if(prime >= lprime){
-          prime = next_prime(1<<30);
+          prime = next_prime(1<<21);
         }
         msd->lp->p[0] = prime;
       }
@@ -1443,13 +1443,13 @@ gb_modpoly_t *core_groebner_qq(
       for(len_t i = 1; i < nthrds/* st->nthrds */; i++){
         prime = next_prime(prime);
         if(prime >= lprime){
-          prime = next_prime(1<<30);
+          prime = next_prime(1<<21);
         }
         msd->lp->p[i] = prime;
         while(is_lucky_prime_ui(prime, bs) || prime==primeinit){
           prime = next_prime(prime);
           if(prime >= lprime){
-            prime = next_prime(1<<30);
+            prime = next_prime(1<<21);
           }
           msd->lp->p[i] = prime;
         }

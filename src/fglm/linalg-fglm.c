@@ -200,422 +200,276 @@ static inline void non_avx_matrix_vector_product(uint32_t* vec_res, const uint32
 
 #ifdef HAVE_AVX2
 
-// avx2 horizontal sum
-static inline
-uint64_t _mm256_hsum(__m256i a)
-{
-    __m256i a_hi = _mm256_shuffle_epi32(a, 14);  // 14 == 0b00001110
-    __m256i sum_lo = _mm256_add_epi64(a, a_hi);
-    __m128i sum_hi = _mm256_extracti128_si256(sum_lo, 1);
-    __m128i sum = _mm_add_epi64(_mm256_castsi256_si128(sum_lo), sum_hi);
-    return (uint64_t) _mm_cvtsi128_si64(sum);
-}
 
-uint32_t _nmod32_vec_dot_split_avx2(const uint32_t * vec1, const uint32_t * vec2, int64_t len,
+float _nmod32_vec_dot_split_avx2(const float * vec1_alligned, const float * vec2, int64_t len,
                                     nmod_t mod, uint64_t pow2_precomp)
 {
-    const __m256i low_bits = _mm256_set1_epi64x(__DOT_SPLIT_MASK);
-    __m256i dp_lo0 = _mm256_setzero_si256();
-    __m256i dp_hi0 = _mm256_setzero_si256();
+    // accumulator
+    __m256d acc_0 = _mm256_setzero_pd();
+    __m256d acc_1 = _mm256_setzero_pd();
+    __m256d acc_2 = _mm256_setzero_pd();
+    __m256d acc_3 = _mm256_setzero_pd();
 
     int64_t i = 0;
+    // process blocks of 4 floats at a time
+    for (; i + 3 < len; i += 16)
+    {   
+        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        __m256 v1_23 = _mm256_load_ps(vec1_alligned + i + 8);
+        __m256d v1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 0));
+        __m256d v1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 1));
+        __m256 v2_01 = _mm256_loadu_ps(vec2 + i);
+        __m256d v2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 0));
+        __m256d v2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 1));
+        __m256 v2_23 = _mm256_loadu_ps(vec2 + i + 8);
+        __m256d v2_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_23, 0));
+        __m256d v2_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_23, 1));
 
-    for ( ; i+31 < len; i+=32)
-    {
-        __m256i v1_0 = _mm256_loadu_si256((const __m256i *) (vec1+i+ 0));
-        __m256i v1_1 = _mm256_loadu_si256((const __m256i *) (vec1+i+ 8));
-        __m256i v1_2 = _mm256_loadu_si256((const __m256i *) (vec1+i+16));
-        __m256i v1_3 = _mm256_loadu_si256((const __m256i *) (vec1+i+24));
-        __m256i v2_0 = _mm256_loadu_si256((const __m256i *) (vec2+i+ 0));
-        __m256i v2_1 = _mm256_loadu_si256((const __m256i *) (vec2+i+ 8));
-        __m256i v2_2 = _mm256_loadu_si256((const __m256i *) (vec2+i+16));
-        __m256i v2_3 = _mm256_loadu_si256((const __m256i *) (vec2+i+24));
-
-        // 1st term: low 32 bit word of each 64 bit word
-        dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0));
-        __m256i dp_lo1 = _mm256_mul_epu32(v1_1, v2_1);
-        __m256i dp_lo2 = _mm256_mul_epu32(v1_2, v2_2);
-        __m256i dp_lo3 = _mm256_mul_epu32(v1_3, v2_3);
-
-        // 2nd term: high 32 bit word of each 64 bit word
-        v1_0 = _mm256_shuffle_epi32(v1_0, 0xB1);
-        v1_1 = _mm256_shuffle_epi32(v1_1, 0xB1);
-        v1_2 = _mm256_shuffle_epi32(v1_2, 0xB1);
-        v1_3 = _mm256_shuffle_epi32(v1_3, 0xB1);
-        v2_0 = _mm256_shuffle_epi32(v2_0, 0xB1);
-        v2_1 = _mm256_shuffle_epi32(v2_1, 0xB1);
-        v2_2 = _mm256_shuffle_epi32(v2_2, 0xB1);
-        v2_3 = _mm256_shuffle_epi32(v2_3, 0xB1);
-        // the above uses vpshufd
-        // shuffle [0,1,2,3] => [1,0,3,2]    (imm8 = 0b10110001  -->  0xB1)
-        // one could also have used vpsrlq, e.g. v1_0 = _mm256_srli_epi64(v1_0, 32)
-
-        dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0));
-        dp_lo1 = _mm256_add_epi64(dp_lo1, _mm256_mul_epu32(v1_1, v2_1));
-        dp_lo2 = _mm256_add_epi64(dp_lo2, _mm256_mul_epu32(v1_2, v2_2));
-        dp_lo3 = _mm256_add_epi64(dp_lo3, _mm256_mul_epu32(v1_3, v2_3));
-
-        // gather results in dp_lo0
-        dp_lo0 = _mm256_add_epi64(dp_lo0, dp_lo1);
-        dp_lo2 = _mm256_add_epi64(dp_lo2, dp_lo3);
-        dp_lo0 = _mm256_add_epi64(dp_lo0, dp_lo2);
-
-        // split
-        dp_hi0 = _mm256_add_epi64(dp_hi0, _mm256_srli_epi64(dp_lo0, __DOT_SPLIT_BITS));
-        dp_lo0 = _mm256_and_si256(dp_lo0, low_bits);
+        // acc += v1 * v2
+        acc_0 = _mm256_fmadd_pd(v1_0, v2_0, acc_0);
+        acc_1 = _mm256_fmadd_pd(v1_1, v2_1, acc_1);
+        acc_2 = _mm256_fmadd_pd(v1_2, v2_2, acc_2);
+        acc_3 = _mm256_fmadd_pd(v1_3, v2_3, acc_3);
     }
-
-    // the following loop iterates < 4 times,
-    // each iteration accumulates 2 terms in dp_lo0
-    for ( ; i+7 < len; i+=8)
-    {
-        __m256i v1_0 = _mm256_loadu_si256((const __m256i *) (vec1+i));
-        __m256i v2_0 = _mm256_loadu_si256((const __m256i *) (vec2+i));
-
-        // 1st term: low 32 bit word of each 64 bit word
-        dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0));
-
-        // 2nd term: high 32 bit word of each 64 bit word
-        v1_0 = _mm256_shuffle_epi32(v1_0, 0xB1);
-        v2_0 = _mm256_shuffle_epi32(v2_0, 0xB1);
-
-        dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0));
+    for (; i < len; i+=8) {
+        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        __m256 v2_01 = _mm256_loadu_ps(vec2 + i);
+        __m256d v2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 0));
+        __m256d v2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 1));
+        acc_0 = _mm256_fmadd_pd(v1_0, v2_0, acc_0);
+        acc_1 = _mm256_fmadd_pd(v1_1, v2_1, acc_1);
     }
+    // combine acc_0, acc_1, acc_2, acc_3
+    acc_0 = _mm256_add_pd(acc_0, acc_1);
+    acc_2 = _mm256_add_pd(acc_2, acc_3);
+    acc_0 = _mm256_add_pd(acc_0, acc_2);
 
-    dp_hi0 = _mm256_add_epi64(dp_hi0, _mm256_srli_epi64(dp_lo0, __DOT_SPLIT_BITS));
-    dp_lo0 = _mm256_and_si256(dp_lo0, low_bits);
+    // horizontal sum of acc
+    double tmp[4];
+    _mm256_storeu_pd(tmp, acc_0);
+    double res = tmp[0] + tmp[1] + tmp[2] + tmp[3];
 
-    uint64_t hsum_lo = _mm256_hsum(dp_lo0);
-    uint64_t hsum_hi = _mm256_hsum(dp_hi0) + (hsum_lo >> __DOT_SPLIT_BITS);
-    hsum_lo &= __DOT_SPLIT_MASK;
-
-    // less than 8 terms remaining, can accumulate
+    // remaining elements
     for (; i < len; i++)
-        hsum_lo += (uint64_t)vec1[i] * vec2[i];
+        res += vec1_alligned[i] * (double) vec2[i];
 
-    hsum_hi += (hsum_lo >> __DOT_SPLIT_BITS);
-    hsum_lo &= __DOT_SPLIT_MASK;
+    // modulo reduction
+    res = fmod(res, (double)mod.n);
 
-    // the requirement on "len <= DOT2_ACC8_MAX_LEN"
-    // ensures pow2_precomp * hsum_hi + hsum_lo fits in 64 bits
-    uint64_t res;
-    NMOD_RED(res, pow2_precomp * hsum_hi + hsum_lo, mod);
-    return (uint32_t)res;
+    return res;
 }
 
-void _nmod32_vec_dot2_split_avx2(uint32_t * res0, uint32_t * res1,
-                                 const uint32_t * vec1, const uint32_t * vec2_0, const uint32_t * vec2_1,
-                                 int64_t len, nmod_t mod, uint64_t pow2_precomp)
+void _nmod32_vec_dot2_split_avx2(float * res, const float * vec1_alligned, const float * vec2_0, const float * vec2_1, int64_t len,
+                                    nmod_t mod, uint64_t pow2_precomp)
 {
-    const __m256i low_bits = _mm256_set1_epi64x(__DOT_SPLIT_MASK);
-    __m256i dp_lo0 = _mm256_setzero_si256();
-    __m256i dp_lo1 = _mm256_setzero_si256();
-    __m256i dp_hi0 = _mm256_setzero_si256();
-    __m256i dp_hi1 = _mm256_setzero_si256();
+    // accumulator
+    __m256d acc_0_0 = _mm256_setzero_pd();
+    __m256d acc_0_1 = _mm256_setzero_pd();
+    __m256d acc_0_2 = _mm256_setzero_pd();
+    __m256d acc_0_3 = _mm256_setzero_pd();
+    __m256d acc_1_0 = _mm256_setzero_pd();
+    __m256d acc_1_1 = _mm256_setzero_pd();
+    __m256d acc_1_2 = _mm256_setzero_pd();
+    __m256d acc_1_3 = _mm256_setzero_pd();
 
     int64_t i = 0;
-
-    for ( ; i+31 < len; i+=32)
+    // process blocks of 4 floats at a time
+    for (; i + 3 < len; i += 16)
     {
-        __m256i v1_0   = _mm256_loadu_si256((const __m256i *) (vec1  +i+ 0));
-        __m256i v1_1   = _mm256_loadu_si256((const __m256i *) (vec1  +i+ 8));
-        __m256i v2_0_0 = _mm256_loadu_si256((const __m256i *) (vec2_0+i+ 0));
-        __m256i v2_0_1 = _mm256_loadu_si256((const __m256i *) (vec2_0+i+ 8));
-        __m256i v2_1_0 = _mm256_loadu_si256((const __m256i *) (vec2_1+i+ 0));
-        __m256i v2_1_1 = _mm256_loadu_si256((const __m256i *) (vec2_1+i+ 8));
+        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        __m256 v1_23 = _mm256_load_ps(vec1_alligned + i + 8);
+        __m256d v1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 0));
+        __m256d v1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 1));
+        __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
+        __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
+        __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
+        __m256 v2_0_23 = _mm256_loadu_ps(vec2_0 + i + 8);
+        __m256d v2_0_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 0));
+        __m256d v2_0_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 1));
+        __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
+        __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
+        __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
+        __m256 v2_1_23 = _mm256_loadu_ps(vec2_1 + i + 8);
+        __m256d v2_1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 0));
+        __m256d v2_1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 1));
 
-        // 1st term: low 32 bit word of each 64 bit word
-        dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0_0));
-        dp_lo1 = _mm256_add_epi64(dp_lo1, _mm256_mul_epu32(v1_0, v2_1_0));
-        __m256i dp_lo2 = _mm256_mul_epu32(v1_1, v2_0_1);
-        __m256i dp_lo3 = _mm256_mul_epu32(v1_1, v2_1_1);
+        // acc += v1 * v2
+        acc_0_0 = _mm256_fmadd_pd(v1_0, v2_0_0, acc_0_0);
+        acc_0_1 = _mm256_fmadd_pd(v1_1, v2_0_1, acc_0_1);
+        acc_0_2 = _mm256_fmadd_pd(v1_2, v2_0_2, acc_0_2);
+        acc_0_3 = _mm256_fmadd_pd(v1_3, v2_0_3, acc_0_3);
+        acc_1_0 = _mm256_fmadd_pd(v1_0, v2_1_0, acc_1_0);
+        acc_1_1 = _mm256_fmadd_pd(v1_1, v2_1_1, acc_1_1);
+        acc_1_2 = _mm256_fmadd_pd(v1_2, v2_1_2, acc_1_2);
+        acc_1_3 = _mm256_fmadd_pd(v1_3, v2_1_3, acc_1_3);
 
-        // 2nd term: high 32 bit word of each 64 bit word
-        v1_0 = _mm256_shuffle_epi32(v1_0, 0xB1);
-        v1_1 = _mm256_shuffle_epi32(v1_1, 0xB1);
-        v2_0_0 = _mm256_shuffle_epi32(v2_0_0, 0xB1);
-        v2_0_1 = _mm256_shuffle_epi32(v2_0_1, 0xB1);
-        v2_1_0 = _mm256_shuffle_epi32(v2_1_0, 0xB1);
-        v2_1_1 = _mm256_shuffle_epi32(v2_1_1, 0xB1);
-        // the above uses vpshufd
-        // shuffle [0,1,2,3] => [1,0,3,2]    (imm8 = 0b10110001  -->  0xB1)
-        // one could also have used vpsrlq, e.g. v1_0 = _mm256_srli_epi64(v1_0, 32)
+    }
+    for (; i < len; i+=8) {
+        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
+        __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
+        __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
+        __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
+        __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
+        __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
+        acc_0_0 = _mm256_fmadd_pd(v1_0, v2_0_0, acc_0_0);
+        acc_0_1 = _mm256_fmadd_pd(v1_1, v2_0_1, acc_0_1);
+        acc_1_0 = _mm256_fmadd_pd(v1_0, v2_1_0, acc_1_0);
+        acc_1_1 = _mm256_fmadd_pd(v1_1, v2_1_1, acc_1_1);
+    }
+    // combine acc_0, acc_1, acc_2, acc_3
+    acc_0_0 = _mm256_add_pd(acc_0_0, acc_0_1);
+    acc_0_2 = _mm256_add_pd(acc_0_2, acc_0_3);
+    acc_0_0 = _mm256_add_pd(acc_0_0, acc_0_2);
+    acc_1_0 = _mm256_add_pd(acc_1_0, acc_1_1);
+    acc_1_2 = _mm256_add_pd(acc_1_2, acc_1_3);
+    acc_1_0 = _mm256_add_pd(acc_1_0, acc_1_2);
 
-        dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0_0));
-        dp_lo1 = _mm256_add_epi64(dp_lo1, _mm256_mul_epu32(v1_0, v2_1_0));
-        dp_lo2 = _mm256_add_epi64(dp_lo2, _mm256_mul_epu32(v1_1, v2_0_1));
-        dp_lo3 = _mm256_add_epi64(dp_lo3, _mm256_mul_epu32(v1_1, v2_1_1));
+    // horizontal sum of acc
+    double tmp[4];
+    _mm256_storeu_pd(tmp, acc_0_0);
+    double res_0 = tmp[0] + tmp[1] + tmp[2] + tmp[3];
+    _mm256_storeu_pd(tmp, acc_1_0);
+    double res_1 = tmp[0] + tmp[1] + tmp[2] + tmp[3];
 
-        v1_0   = _mm256_loadu_si256((const __m256i *) (vec1  +i+16));
-        v1_1   = _mm256_loadu_si256((const __m256i *) (vec1  +i+24));
-        v2_0_0 = _mm256_loadu_si256((const __m256i *) (vec2_0+i+16));
-        v2_0_1 = _mm256_loadu_si256((const __m256i *) (vec2_0+i+24));
-        v2_1_0 = _mm256_loadu_si256((const __m256i *) (vec2_1+i+16));
-        v2_1_1 = _mm256_loadu_si256((const __m256i *) (vec2_1+i+24));
-
-        // 3rd term: low 32 bit word of each 64 bit word
-        dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0_0));
-        dp_lo1 = _mm256_add_epi64(dp_lo1, _mm256_mul_epu32(v1_0, v2_1_0));
-        dp_lo2 = _mm256_add_epi64(dp_lo2, _mm256_mul_epu32(v1_1, v2_0_1));
-        dp_lo3 = _mm256_add_epi64(dp_lo3, _mm256_mul_epu32(v1_1, v2_1_1));
-
-        // 4th term: high 32 bit word of each 64 bit word
-        v1_0 = _mm256_shuffle_epi32(v1_0, 0xB1);
-        v1_1 = _mm256_shuffle_epi32(v1_1, 0xB1);
-        v2_0_0 = _mm256_shuffle_epi32(v2_0_0, 0xB1);
-        v2_0_1 = _mm256_shuffle_epi32(v2_0_1, 0xB1);
-        v2_1_0 = _mm256_shuffle_epi32(v2_1_0, 0xB1);
-        v2_1_1 = _mm256_shuffle_epi32(v2_1_1, 0xB1);
-
-        dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0_0));
-        dp_lo1 = _mm256_add_epi64(dp_lo1, _mm256_mul_epu32(v1_0, v2_1_0));
-        dp_lo2 = _mm256_add_epi64(dp_lo2, _mm256_mul_epu32(v1_1, v2_0_1));
-        dp_lo3 = _mm256_add_epi64(dp_lo3, _mm256_mul_epu32(v1_1, v2_1_1));
-
-        // gather results in dp_lo0 and dp_lo1
-        dp_lo0 = _mm256_add_epi64(dp_lo0, dp_lo2);
-        dp_lo1 = _mm256_add_epi64(dp_lo1, dp_lo3);
-
-        // split
-        dp_hi0 = _mm256_add_epi64(dp_hi0, _mm256_srli_epi64(dp_lo0, __DOT_SPLIT_BITS));
-        dp_hi1 = _mm256_add_epi64(dp_hi1, _mm256_srli_epi64(dp_lo1, __DOT_SPLIT_BITS));
-        dp_lo0 = _mm256_and_si256(dp_lo0, low_bits);
-        dp_lo1 = _mm256_and_si256(dp_lo1, low_bits);
+    // remaining elements
+    for (; i < len; i++) {
+        res_0 += vec1_alligned[i] * (double) vec2_0[i];
+        res_1 += vec1_alligned[i] * (double) vec2_1[i];
     }
 
-    // the following loop iterates <= 3 times,
-    // each iteration accumulates 2 terms in dp_lo0 and dp_lo1
-    for ( ; i+7 < len; i+=8)
-    {
-        __m256i v1_0 = _mm256_loadu_si256((const __m256i *) (vec1+i));
-        __m256i v2_0_0 = _mm256_loadu_si256((const __m256i *) (vec2_0+i));
-        __m256i v2_1_0 = _mm256_loadu_si256((const __m256i *) (vec2_1+i));
-
-        // 1st term: low 32 bit word of each 64 bit word
-        dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0_0));
-        dp_lo1 = _mm256_add_epi64(dp_lo1, _mm256_mul_epu32(v1_0, v2_1_0));
-
-        // 2nd term: high 32 bit word of each 64 bit word
-        v1_0 = _mm256_shuffle_epi32(v1_0, 0xB1);
-        v2_0_0 = _mm256_shuffle_epi32(v2_0_0, 0xB1);
-        v2_1_0 = _mm256_shuffle_epi32(v2_1_0, 0xB1);
-
-        dp_lo0 = _mm256_add_epi64(dp_lo0, _mm256_mul_epu32(v1_0, v2_0_0));
-        dp_lo1 = _mm256_add_epi64(dp_lo1, _mm256_mul_epu32(v1_0, v2_1_0));
-    }
-
-    dp_hi0 = _mm256_add_epi64(dp_hi0, _mm256_srli_epi64(dp_lo0, __DOT_SPLIT_BITS));
-    dp_lo0 = _mm256_and_si256(dp_lo0, low_bits);
-    dp_hi1 = _mm256_add_epi64(dp_hi1, _mm256_srli_epi64(dp_lo1, __DOT_SPLIT_BITS));
-    dp_lo1 = _mm256_and_si256(dp_lo1, low_bits);
-
-    uint64_t hsum_lo0 = _mm256_hsum(dp_lo0);
-    uint64_t hsum_hi0 = _mm256_hsum(dp_hi0) + (hsum_lo0 >> __DOT_SPLIT_BITS);
-    hsum_lo0 &= __DOT_SPLIT_MASK;
-    uint64_t hsum_lo1 = _mm256_hsum(dp_lo1);
-    uint64_t hsum_hi1 = _mm256_hsum(dp_hi1) + (hsum_lo1 >> __DOT_SPLIT_BITS);
-    hsum_lo1 &= __DOT_SPLIT_MASK;
-
-    // less than 8 terms remaining, can accumulate
-    for (; i < len; i++)
-    {
-        hsum_lo0 += (uint64_t)vec1[i] * vec2_0[i];
-        hsum_lo1 += (uint64_t)vec1[i] * vec2_1[i];
-    }
-    hsum_hi0 += (hsum_lo0 >> __DOT_SPLIT_BITS);
-    hsum_lo0 &= __DOT_SPLIT_MASK;
-    hsum_hi1 += (hsum_lo1 >> __DOT_SPLIT_BITS);
-    hsum_lo1 &= __DOT_SPLIT_MASK;
-
-    // the requirement on "len <= DOT2_ACC8_MAX_LEN"
-    // ensures pow2_precomp * hsum_hi + hsum_lo fits in 64 bits
-    NMOD_RED(*res0, pow2_precomp * hsum_hi0 + hsum_lo0, mod);
-    NMOD_RED(*res1, pow2_precomp * hsum_hi1 + hsum_lo1, mod);
+    // modulo reduction
+    res[0] = fmod(res_0, (double)mod.n);
+    res[1] = fmod(res_1, (double)mod.n);
 }
 
-void _nmod32_vec_dot3_split_avx2(uint32_t * res, const uint32_t * vec1,
-                                 const uint32_t * vec2_0, const uint32_t * vec2_1, const uint32_t * vec2_2,
-                                 int64_t len, nmod_t mod, uint64_t pow2_precomp)
+void _nmod32_vec_dot3_split_avx2(float * res, const float * vec1_alligned, const float * vec2_0, const float * vec2_1, const float * vec2_2, int64_t len,
+                                    nmod_t mod, uint64_t pow2_precomp)
 {
-    const __m256i low_bits = _mm256_set1_epi64x(__DOT_SPLIT_MASK);
-
-    __m256i dp_lo[3];
-    __m256i dp_hi[3];
-    __m256i v1;
-    __m256i v2[3];
-
-    dp_lo[0] = _mm256_setzero_si256();
-    dp_lo[1] = _mm256_setzero_si256();
-    dp_lo[2] = _mm256_setzero_si256();
-
-    dp_hi[0] = _mm256_setzero_si256();
-    dp_hi[1] = _mm256_setzero_si256();
-    dp_hi[2] = _mm256_setzero_si256();
+    // accumulator
+    __m256d acc_0_0 = _mm256_setzero_pd();
+    __m256d acc_0_1 = _mm256_setzero_pd();
+    __m256d acc_0_2 = _mm256_setzero_pd();
+    __m256d acc_0_3 = _mm256_setzero_pd();
+    __m256d acc_1_0 = _mm256_setzero_pd();
+    __m256d acc_1_1 = _mm256_setzero_pd();
+    __m256d acc_1_2 = _mm256_setzero_pd();
+    __m256d acc_1_3 = _mm256_setzero_pd();
+    __m256d acc_2_0 = _mm256_setzero_pd();
+    __m256d acc_2_1 = _mm256_setzero_pd();
+    __m256d acc_2_2 = _mm256_setzero_pd();
+    __m256d acc_2_3 = _mm256_setzero_pd();
 
     int64_t i = 0;
-
-    for ( ; i+31 < len; i+=32)
+    // process blocks of 8 floats at a time
+    for (; i + 3 < len; i += 16)
     {
-        v1    = _mm256_loadu_si256((const __m256i *) (vec1  +i+ 0));
-        v2[0] = _mm256_loadu_si256((const __m256i *) (vec2_0+i+ 0));
-        v2[1] = _mm256_loadu_si256((const __m256i *) (vec2_1+i+ 0));
-        v2[2] = _mm256_loadu_si256((const __m256i *) (vec2_2+i+ 0));
+        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        __m256 v1_23 = _mm256_load_ps(vec1_alligned + i + 8);
+        __m256d v1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 0));
+        __m256d v1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 1));
+        __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
+        __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
+        __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
+        __m256 v2_0_23 = _mm256_loadu_ps(vec2_0 + i + 8);
+        __m256d v2_0_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 0));
+        __m256d v2_0_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 1));
+        __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
+        __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
+        __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
+        __m256 v2_1_23 = _mm256_loadu_ps(vec2_1 + i + 8);
+        __m256d v2_1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 0));
+        __m256d v2_1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 1));
+        __m256 v2_2_01 = _mm256_loadu_ps(vec2_2 + i);
+        __m256d v2_2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 0));
+        __m256d v2_2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 1));
+        __m256 v2_2_23 = _mm256_loadu_ps(vec2_2 + i + 8);
+        __m256d v2_2_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_23, 0));
+        __m256d v2_2_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_23, 1));
 
-        // 1st term: low 32 bit word of each 64 bit word
-        dp_lo[0] = _mm256_add_epi64(dp_lo[0], _mm256_mul_epu32(v1, v2[0]));
-        dp_lo[1] = _mm256_add_epi64(dp_lo[1], _mm256_mul_epu32(v1, v2[1]));
-        dp_lo[2] = _mm256_add_epi64(dp_lo[2], _mm256_mul_epu32(v1, v2[2]));
+        // acc += v1 * v2
+        acc_0_0 = _mm256_fmadd_pd(v1_0, v2_0_0, acc_0_0);
+        acc_0_1 = _mm256_fmadd_pd(v1_1, v2_0_1, acc_0_1);
+        acc_0_2 = _mm256_fmadd_pd(v1_2, v2_0_2, acc_0_2);
+        acc_0_3 = _mm256_fmadd_pd(v1_3, v2_0_3, acc_0_3);
+        acc_1_0 = _mm256_fmadd_pd(v1_0, v2_1_0, acc_1_0);
+        acc_1_1 = _mm256_fmadd_pd(v1_1, v2_1_1, acc_1_1);
+        acc_1_2 = _mm256_fmadd_pd(v1_2, v2_1_2, acc_1_2);
+        acc_1_3 = _mm256_fmadd_pd(v1_3, v2_1_3, acc_1_3);
+        acc_2_0 = _mm256_fmadd_pd(v1_0, v2_2_0, acc_2_0);
+        acc_2_1 = _mm256_fmadd_pd(v1_1, v2_2_1, acc_2_1);
+        acc_2_2 = _mm256_fmadd_pd(v1_2, v2_2_2, acc_2_2);
+        acc_2_3 = _mm256_fmadd_pd(v1_3, v2_2_3, acc_2_3);
 
-        // 2nd term: high 32 bit word of each 64 bit word
-        v1    = _mm256_shuffle_epi32(v1   , 0xB1);
-        v2[0] = _mm256_shuffle_epi32(v2[0], 0xB1);
-        v2[1] = _mm256_shuffle_epi32(v2[1], 0xB1);
-        v2[2] = _mm256_shuffle_epi32(v2[2], 0xB1);
-        // the above uses vpshufd
-        // shuffle [0,1,2,3] => [1,0,3,2]    (imm8 = 0b10110001  -->  0xB1)
-        // one could also have used vpsrlq, e.g. v1_0 = _mm256_srli_epi64(v1_0, 32)
+    }
+    for (; i < len; i+=8) {
+        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
+        __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
+        __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
+        __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
+        __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
+        __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
+        __m256 v2_2_01 = _mm256_loadu_ps(vec2_2 + i);
+        __m256d v2_2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 0));
+        __m256d v2_2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 1));
+        acc_0_0 = _mm256_fmadd_pd(v1_0, v2_0_0, acc_0_0);
+        acc_0_1 = _mm256_fmadd_pd(v1_1, v2_0_1, acc_0_1);
+        acc_1_0 = _mm256_fmadd_pd(v1_0, v2_1_0, acc_1_0);
+        acc_1_1 = _mm256_fmadd_pd(v1_1, v2_1_1, acc_1_1);
+        acc_2_0 = _mm256_fmadd_pd(v1_0, v2_2_0, acc_2_0);
+        acc_2_1 = _mm256_fmadd_pd(v1_1, v2_2_1, acc_2_1);
+    }
+    // combine acc_0, acc_1, acc_2, acc_3
+    acc_0_0 = _mm256_add_pd(acc_0_0, acc_0_1);
+    acc_0_2 = _mm256_add_pd(acc_0_2, acc_0_3);
+    acc_0_0 = _mm256_add_pd(acc_0_0, acc_0_2);
+    acc_1_0 = _mm256_add_pd(acc_1_0, acc_1_1);
+    acc_1_2 = _mm256_add_pd(acc_1_2, acc_1_3);
+    acc_1_0 = _mm256_add_pd(acc_1_0, acc_1_2);
+    acc_2_0 = _mm256_add_pd(acc_2_0, acc_2_1);
+    acc_2_2 = _mm256_add_pd(acc_2_2, acc_2_3);
+    acc_2_0 = _mm256_add_pd(acc_2_0, acc_2_2);
 
-        dp_lo[0] = _mm256_add_epi64(dp_lo[0], _mm256_mul_epu32(v1, v2[0]));
-        dp_lo[1] = _mm256_add_epi64(dp_lo[1], _mm256_mul_epu32(v1, v2[1]));
-        dp_lo[2] = _mm256_add_epi64(dp_lo[2], _mm256_mul_epu32(v1, v2[2]));
+    // horizontal sum of acc
+    double tmp[4];
+    _mm256_storeu_pd(tmp, acc_0_0);
+    double res_0 = tmp[0] + tmp[1] + tmp[2] + tmp[3];
+    _mm256_storeu_pd(tmp, acc_1_0);
+    double res_1 = tmp[0] + tmp[1] + tmp[2] + tmp[3];
+    _mm256_storeu_pd(tmp, acc_2_0);
+    double res_2 = tmp[0] + tmp[1] + tmp[2] + tmp[3];
 
-        // 3rd+4th term
-        v1    = _mm256_loadu_si256((const __m256i *) (vec1  +i+ 8));
-        v2[0] = _mm256_loadu_si256((const __m256i *) (vec2_0+i+ 8));
-        v2[1] = _mm256_loadu_si256((const __m256i *) (vec2_1+i+ 8));
-        v2[2] = _mm256_loadu_si256((const __m256i *) (vec2_2+i+ 8));
 
-        dp_lo[0] = _mm256_add_epi64(dp_lo[0], _mm256_mul_epu32(v1, v2[0]));
-        dp_lo[1] = _mm256_add_epi64(dp_lo[1], _mm256_mul_epu32(v1, v2[1]));
-        dp_lo[2] = _mm256_add_epi64(dp_lo[2], _mm256_mul_epu32(v1, v2[2]));
-
-        v1    = _mm256_shuffle_epi32(v1   , 0xB1);
-        v2[0] = _mm256_shuffle_epi32(v2[0], 0xB1);
-        v2[1] = _mm256_shuffle_epi32(v2[1], 0xB1);
-        v2[2] = _mm256_shuffle_epi32(v2[2], 0xB1);
-
-        dp_lo[0] = _mm256_add_epi64(dp_lo[0], _mm256_mul_epu32(v1, v2[0]));
-        dp_lo[1] = _mm256_add_epi64(dp_lo[1], _mm256_mul_epu32(v1, v2[1]));
-        dp_lo[2] = _mm256_add_epi64(dp_lo[2], _mm256_mul_epu32(v1, v2[2]));
-
-        // 5th+6th term
-        v1    = _mm256_loadu_si256((const __m256i *) (vec1  +i+16));
-        v2[0] = _mm256_loadu_si256((const __m256i *) (vec2_0+i+16));
-        v2[1] = _mm256_loadu_si256((const __m256i *) (vec2_1+i+16));
-        v2[2] = _mm256_loadu_si256((const __m256i *) (vec2_2+i+16));
-
-        dp_lo[0] = _mm256_add_epi64(dp_lo[0], _mm256_mul_epu32(v1, v2[0]));
-        dp_lo[1] = _mm256_add_epi64(dp_lo[1], _mm256_mul_epu32(v1, v2[1]));
-        dp_lo[2] = _mm256_add_epi64(dp_lo[2], _mm256_mul_epu32(v1, v2[2]));
-
-        v1    = _mm256_shuffle_epi32(v1   , 0xB1);
-        v2[0] = _mm256_shuffle_epi32(v2[0], 0xB1);
-        v2[1] = _mm256_shuffle_epi32(v2[1], 0xB1);
-        v2[2] = _mm256_shuffle_epi32(v2[2], 0xB1);
-
-        dp_lo[0] = _mm256_add_epi64(dp_lo[0], _mm256_mul_epu32(v1, v2[0]));
-        dp_lo[1] = _mm256_add_epi64(dp_lo[1], _mm256_mul_epu32(v1, v2[1]));
-        dp_lo[2] = _mm256_add_epi64(dp_lo[2], _mm256_mul_epu32(v1, v2[2]));
-
-        // 7th+8th term
-        v1    = _mm256_loadu_si256((const __m256i *) (vec1  +i+24));
-        v2[0] = _mm256_loadu_si256((const __m256i *) (vec2_0+i+24));
-        v2[1] = _mm256_loadu_si256((const __m256i *) (vec2_1+i+24));
-        v2[2] = _mm256_loadu_si256((const __m256i *) (vec2_2+i+24));
-
-        dp_lo[0] = _mm256_add_epi64(dp_lo[0], _mm256_mul_epu32(v1, v2[0]));
-        dp_lo[1] = _mm256_add_epi64(dp_lo[1], _mm256_mul_epu32(v1, v2[1]));
-        dp_lo[2] = _mm256_add_epi64(dp_lo[2], _mm256_mul_epu32(v1, v2[2]));
-
-        v1    = _mm256_shuffle_epi32(v1   , 0xB1);
-        v2[0] = _mm256_shuffle_epi32(v2[0], 0xB1);
-        v2[1] = _mm256_shuffle_epi32(v2[1], 0xB1);
-        v2[2] = _mm256_shuffle_epi32(v2[2], 0xB1);
-
-        dp_lo[0] = _mm256_add_epi64(dp_lo[0], _mm256_mul_epu32(v1, v2[0]));
-        dp_lo[1] = _mm256_add_epi64(dp_lo[1], _mm256_mul_epu32(v1, v2[1]));
-        dp_lo[2] = _mm256_add_epi64(dp_lo[2], _mm256_mul_epu32(v1, v2[2]));
-
-        // split
-        dp_hi[0] = _mm256_add_epi64(dp_hi[0], _mm256_srli_epi64(dp_lo[0], __DOT_SPLIT_BITS));
-        dp_hi[1] = _mm256_add_epi64(dp_hi[1], _mm256_srli_epi64(dp_lo[1], __DOT_SPLIT_BITS));
-        dp_hi[2] = _mm256_add_epi64(dp_hi[2], _mm256_srli_epi64(dp_lo[2], __DOT_SPLIT_BITS));
-        dp_lo[0] = _mm256_and_si256(dp_lo[0], low_bits);
-        dp_lo[1] = _mm256_and_si256(dp_lo[1], low_bits);
-        dp_lo[2] = _mm256_and_si256(dp_lo[2], low_bits);
+    // remaining elements
+    for (; i < len; i++) {
+        res_0 += vec1_alligned[i] * (double) vec2_0[i];
+        res_1 += vec1_alligned[i] * (double) vec2_1[i];
+        res_2 += vec1_alligned[i] * (double) vec2_2[i];
     }
 
-    // the following loop iterates <= 3 times,
-    // each iteration accumulates 2 terms
-    for ( ; i+7 < len; i += 8)
-    {
-        v1    = _mm256_loadu_si256((const __m256i *) (vec1  +i+ 0));
-        v2[0] = _mm256_loadu_si256((const __m256i *) (vec2_0+i+ 0));
-        v2[1] = _mm256_loadu_si256((const __m256i *) (vec2_1+i+ 0));
-        v2[2] = _mm256_loadu_si256((const __m256i *) (vec2_2+i+ 0));
+    // modulo reduction
+    res[0] = fmod(res_0, (double)mod.n);
+    res[1] = fmod(res_1, (double)mod.n);
+    res[2] = fmod(res_2, (double)mod.n);
 
-        // 1st term: low 32 bit word of each 64 bit word
-        dp_lo[0] = _mm256_add_epi64(dp_lo[0], _mm256_mul_epu32(v1, v2[0]));
-        dp_lo[1] = _mm256_add_epi64(dp_lo[1], _mm256_mul_epu32(v1, v2[1]));
-        dp_lo[2] = _mm256_add_epi64(dp_lo[2], _mm256_mul_epu32(v1, v2[2]));
-
-        // 2nd term: high 32 bit word of each 64 bit word
-        v1    = _mm256_shuffle_epi32(v1   , 0xB1);
-        v2[0] = _mm256_shuffle_epi32(v2[0], 0xB1);
-        v2[1] = _mm256_shuffle_epi32(v2[1], 0xB1);
-        v2[2] = _mm256_shuffle_epi32(v2[2], 0xB1);
-        // the above uses vpshufd
-        // shuffle [0,1,2,3] => [1,0,3,2]    (imm8 = 0b10110001  -->  0xB1)
-        // one could also have used vpsrlq, e.g. v1_0 = _mm256_srli_epi64(v1_0, 32)
-
-        dp_lo[0] = _mm256_add_epi64(dp_lo[0], _mm256_mul_epu32(v1, v2[0]));
-        dp_lo[1] = _mm256_add_epi64(dp_lo[1], _mm256_mul_epu32(v1, v2[1]));
-        dp_lo[2] = _mm256_add_epi64(dp_lo[2], _mm256_mul_epu32(v1, v2[2]));
-    }
-
-    // split
-    dp_hi[0] = _mm256_add_epi64(dp_hi[0], _mm256_srli_epi64(dp_lo[0], __DOT_SPLIT_BITS));
-    dp_hi[1] = _mm256_add_epi64(dp_hi[1], _mm256_srli_epi64(dp_lo[1], __DOT_SPLIT_BITS));
-    dp_hi[2] = _mm256_add_epi64(dp_hi[2], _mm256_srli_epi64(dp_lo[2], __DOT_SPLIT_BITS));
-    dp_lo[0] = _mm256_and_si256(dp_lo[0], low_bits);
-    dp_lo[1] = _mm256_and_si256(dp_lo[1], low_bits);
-    dp_lo[2] = _mm256_and_si256(dp_lo[2], low_bits);
-
-    uint64_t hsum_lo[3];
-    uint64_t hsum_hi[3];
-    hsum_lo[0] = _mm256_hsum(dp_lo[0]);
-    hsum_hi[0] = _mm256_hsum(dp_hi[0]) + (hsum_lo[0] >> __DOT_SPLIT_BITS);
-    hsum_lo[0] &= __DOT_SPLIT_MASK;
-    hsum_lo[1] = _mm256_hsum(dp_lo[1]);
-    hsum_hi[1] = _mm256_hsum(dp_hi[1]) + (hsum_lo[1] >> __DOT_SPLIT_BITS);
-    hsum_lo[1] &= __DOT_SPLIT_MASK;
-    hsum_lo[2] = _mm256_hsum(dp_lo[2]);
-    hsum_hi[2] = _mm256_hsum(dp_hi[2]) + (hsum_lo[2] >> __DOT_SPLIT_BITS);
-    hsum_lo[2] &= __DOT_SPLIT_MASK;
-
-    // less than 8 terms remaining, can accumulate
-    for (; i < len; i++)
-    {
-        hsum_lo[0] += (uint64_t)vec1[i] * vec2_0[i];
-        hsum_lo[1] += (uint64_t)vec1[i] * vec2_1[i];
-        hsum_lo[2] += (uint64_t)vec1[i] * vec2_2[i];
-    }
-
-    hsum_hi[0] += (hsum_lo[0] >> __DOT_SPLIT_BITS);
-    hsum_hi[1] += (hsum_lo[1] >> __DOT_SPLIT_BITS);
-    hsum_hi[2] += (hsum_lo[2] >> __DOT_SPLIT_BITS);
-    hsum_lo[0] &= __DOT_SPLIT_MASK;
-    hsum_lo[1] &= __DOT_SPLIT_MASK;
-    hsum_lo[2] &= __DOT_SPLIT_MASK;
-
-    NMOD_RED(res[0], pow2_precomp * hsum_hi[0] + hsum_lo[0], mod);
-    NMOD_RED(res[1], pow2_precomp * hsum_hi[1] + hsum_lo[1], mod);
-    NMOD_RED(res[2], pow2_precomp * hsum_hi[2] + hsum_lo[2], mod);
 }
 
-static inline void _avx2_matrix_vector_product(uint32_t * vec_res,
-                                               const uint32_t * mat,
-                                               const uint32_t * vec,
+static inline void _avx2_matrix_vector_product(float * vec_res,
+                                               const float * mat,
+                                               const float * vec,
                                                const uint32_t * dst,
                                                const uint32_t ncols,
                                                const uint32_t nrows,
@@ -642,7 +496,7 @@ static inline void _avx2_matrix_vector_product(uint32_t * vec_res,
     if (nrows - i == 2)
     {
         int64_t len = ncols - MIN(dst[i], dst[i+1]);
-        _nmod32_vec_dot2_split_avx2(vec_res+i, vec_res+i+1,
+        _nmod32_vec_dot2_split_avx2(vec_res+i,
                                     vec, mat + i*ncols, mat + (i+1)*ncols,
                                     len, mod, pow2_precomp);
     }
