@@ -10,3 +10,16 @@ kat12-31 old
 18.07 sec  15.78 sec
 15.77 sec  18.05 sec
 15.78 sec  18.07 sec
+
+
+
+
+kat11-qq (prime change) (only total time) (elapsed / cpu)
+117.94 sec  117.93 sec
+117.46 sec  117.45 sec
+120.35 sec  120.34 sec
+
+kat11-qq (float version) (only total time) (elapsed / cpu)
+140.74 sec  140.73 sec
+139.57 sec  139.56 sec
+139.92 sec  139.91 sec
