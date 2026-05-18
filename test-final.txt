@@ -1,0 +1,83 @@
+what, version, architecture, lin alg, total elapsed
+
+kat12, float, AVX2, 11.50, 13.54
+kat12, float, AVX2, 11.31, 13.66
+kat12, float, AVX2, 11.43, 13.69
+
+kat12, double, AVX2, 12.50, 14.66
+kat12, double, AVX2, 12.68, 15.06
+kat12, double, AVX2, 13.98, 16.23
+
+kat12, int, AVX2, 8.95, 11.02
+kat12, int, AVX2, 8.58, 10.70
+kat12, int, AVX2, 8.75, 10.98
+
+
+kat14, float, AVX2, 955.37, 999.07
+
+kat14, double, AVX2, 1185.01, 1171.01
+
+kat14, int, AVX2, 743.38, 783.15
+
+
+
+kat12, float, AVX512, 21.00, 23.51
+kat12, float, AVX512, 21.00, 23.52
+kat12, float, AVX512, 21.05, 23.56
+
+kat12, double, AVX512, ------------------------------------------------
+kat12, double, AVX512, ------------------------------------------------
+kat12, double, AVX512, ------------------------------------------------
+
+kat12, int, AVX512, 15.73, 18.03
+kat12, int, AVX512, 15.75, 18.05
+kat12, int, AVX512, 15.77, 18.09
+
+
+kat14, float, AVX512, ------------------------------------------------
+
+kat14, double, AVX512, ------------------------------------------------
+
+kat14, int, AVX512, 1321.44, 1370.99
+
+
+
+
+
+
+what, version, architecture, total elapsed, total cpu
+
+
+kat11-qq, initial, AVX2, 62.20, 63.57
+kat11-qq, initial, AVX2, 64.13, 63.94
+kat11-qq, initial, AVX2, 63.57, 63.44
+
+kat11-qq, prime change, AVX2, 69.76, 69.88
+kat11-qq, prime change, AVX2, 68.46, 68.29
+kat11-qq, prime change, AVX2, 69.82, 69.79
+
+kat11-qq, float, AVX2, 72.18, 72.14
+kat11-qq, float, AVX2, 72.97, 72.92
+kat11-qq, float, AVX2, 73.26, 73.30
+
+kat11-qq, double, AVX2, ------------------------------------------------
+kat11-qq, double, AVX2, ------------------------------------------------
+kat11-qq, double, AVX2, ------------------------------------------------
+
+
+
+kat11-qq, initial, AVX512, ------------------------------------------------
+kat11-qq, initial, AVX512, ------------------------------------------------
+kat11-qq, initial, AVX512, ------------------------------------------------
+
+kat11-qq, prime change, AVX512, 117.94, 117.93
+kat11-qq, prime change, AVX512, 117.46, 117.45
+kat11-qq, prime change, AVX512, 120.35, 120.34
+
+kat11-qq, float, AVX512, 140.74, 140.73
+kat11-qq, float, AVX512, 139.57, 139.56
+kat11-qq, float, AVX512, 139.92, 139.91
+
+kat11-qq, double, AVX512, ------------------------------------------------
+kat11-qq, double, AVX512, ------------------------------------------------
+kat11-qq, double, AVX512, ------------------------------------------------

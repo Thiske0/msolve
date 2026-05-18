@@ -201,7 +201,7 @@ static inline void non_avx_matrix_vector_product(uint32_t* vec_res, const uint32
 #ifdef HAVE_AVX2
 
 
-float _nmod32_vec_dot_split_avx2(const float * vec1_alligned, const float * vec2, int64_t len,
+double _nmod32_vec_dot_split_avx2(const double * vec1_alligned, const double * vec2, int64_t len,
                                     nmod_t mod, uint64_t pow2_precomp)
 {
     // accumulator
@@ -214,18 +214,26 @@ float _nmod32_vec_dot_split_avx2(const float * vec1_alligned, const float * vec2
     // process blocks of 4 floats at a time
     for (; i + 3 < len; i += 16)
     {   
-        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
-        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
-        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
-        __m256 v1_23 = _mm256_load_ps(vec1_alligned + i + 8);
-        __m256d v1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 0));
-        __m256d v1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 1));
-        __m256 v2_01 = _mm256_loadu_ps(vec2 + i);
-        __m256d v2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 0));
-        __m256d v2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 1));
-        __m256 v2_23 = _mm256_loadu_ps(vec2 + i + 8);
-        __m256d v2_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_23, 0));
-        __m256d v2_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_23, 1));
+        // __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        // __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        // __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        __m256d v1_0 = _mm256_loadu_pd(vec1_alligned + i);
+        __m256d v1_1 = _mm256_loadu_pd(vec1_alligned + i + 4);
+        // __m256 v1_23 = _mm256_load_ps(vec1_alligned + i + 8);
+        // __m256d v1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 0));
+        // __m256d v1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 1));
+        __m256d v1_2 = _mm256_loadu_pd(vec1_alligned + i + 8);
+        __m256d v1_3 = _mm256_loadu_pd(vec1_alligned + i + 12);
+        // __m256 v2_01 = _mm256_loadu_ps(vec2 + i);
+        // __m256d v2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 0));
+        // __m256d v2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 1));
+        __m256d v2_0 = _mm256_loadu_pd(vec2 + i);
+        __m256d v2_1 = _mm256_loadu_pd(vec2 + i + 4);
+        // __m256 v2_23 = _mm256_loadu_ps(vec2 + i + 8);
+        // __m256d v2_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_23, 0));
+        // __m256d v2_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_23, 1));
+        __m256d v2_2 = _mm256_loadu_pd(vec2 + i + 8);
+        __m256d v2_3 = _mm256_loadu_pd(vec2 + i + 12);
 
         // acc += v1 * v2
         acc_0 = _mm256_fmadd_pd(v1_0, v2_0, acc_0);
@@ -234,12 +242,16 @@ float _nmod32_vec_dot_split_avx2(const float * vec1_alligned, const float * vec2
         acc_3 = _mm256_fmadd_pd(v1_3, v2_3, acc_3);
     }
     for (; i < len; i+=8) {
-        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
-        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
-        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
-        __m256 v2_01 = _mm256_loadu_ps(vec2 + i);
-        __m256d v2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 0));
-        __m256d v2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 1));
+        // __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        // __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        // __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        __m256d v1_0 = _mm256_loadu_pd(vec1_alligned + i);
+        __m256d v1_1 = _mm256_loadu_pd(vec1_alligned + i + 4);
+        // __m256 v2_01 = _mm256_loadu_ps(vec2 + i);
+        // __m256d v2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 0));
+        // __m256d v2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_01, 1));
+        __m256d v2_0 = _mm256_loadu_pd(vec2 + i);
+        __m256d v2_1 = _mm256_loadu_pd(vec2 + i + 4);
         acc_0 = _mm256_fmadd_pd(v1_0, v2_0, acc_0);
         acc_1 = _mm256_fmadd_pd(v1_1, v2_1, acc_1);
     }
@@ -263,7 +275,7 @@ float _nmod32_vec_dot_split_avx2(const float * vec1_alligned, const float * vec2
     return res;
 }
 
-void _nmod32_vec_dot2_split_avx2(float * res, const float * vec1_alligned, const float * vec2_0, const float * vec2_1, int64_t len,
+void _nmod32_vec_dot2_split_avx2(double * res, const double * vec1_alligned, const double * vec2_0, const double * vec2_1, int64_t len,
                                     nmod_t mod, uint64_t pow2_precomp)
 {
     // accumulator
@@ -280,24 +292,36 @@ void _nmod32_vec_dot2_split_avx2(float * res, const float * vec1_alligned, const
     // process blocks of 4 floats at a time
     for (; i + 3 < len; i += 16)
     {
-        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
-        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
-        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
-        __m256 v1_23 = _mm256_load_ps(vec1_alligned + i + 8);
-        __m256d v1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 0));
-        __m256d v1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 1));
-        __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
-        __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
-        __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
-        __m256 v2_0_23 = _mm256_loadu_ps(vec2_0 + i + 8);
-        __m256d v2_0_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 0));
-        __m256d v2_0_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 1));
-        __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
-        __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
-        __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
-        __m256 v2_1_23 = _mm256_loadu_ps(vec2_1 + i + 8);
-        __m256d v2_1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 0));
-        __m256d v2_1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 1));
+        // __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        // __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        // __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        // __m256 v1_23 = _mm256_load_ps(vec1_alligned + i + 8);
+        // __m256d v1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 0));
+        // __m256d v1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 1));
+        // __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
+        // __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
+        // __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
+        // __m256 v2_0_23 = _mm256_loadu_ps(vec2_0 + i + 8);
+        // __m256d v2_0_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 0));
+        // __m256d v2_0_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 1));
+        // __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
+        // __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
+        // __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
+        // __m256 v2_1_23 = _mm256_loadu_ps(vec2_1 + i + 8);
+        // __m256d v2_1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 0));
+        // __m256d v2_1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 1));
+        __m256d v1_0 = _mm256_loadu_pd(vec1_alligned + i);
+        __m256d v1_1 = _mm256_loadu_pd(vec1_alligned + i + 4);
+        __m256d v1_2 = _mm256_loadu_pd(vec1_alligned + i + 8);
+        __m256d v1_3 = _mm256_loadu_pd(vec1_alligned + i + 12);
+        __m256d v2_0_0 = _mm256_loadu_pd(vec2_0 + i);
+        __m256d v2_0_1 = _mm256_loadu_pd(vec2_0 + i + 4);
+        __m256d v2_0_2 = _mm256_loadu_pd(vec2_0 + i + 8);
+        __m256d v2_0_3 = _mm256_loadu_pd(vec2_0 + i + 12);
+        __m256d v2_1_0 = _mm256_loadu_pd(vec2_1 + i);
+        __m256d v2_1_1 = _mm256_loadu_pd(vec2_1 + i + 4);
+        __m256d v2_1_2 = _mm256_loadu_pd(vec2_1 + i + 8);
+        __m256d v2_1_3 = _mm256_loadu_pd(vec2_1 + i + 12);
 
         // acc += v1 * v2
         acc_0_0 = _mm256_fmadd_pd(v1_0, v2_0_0, acc_0_0);
@@ -311,15 +335,21 @@ void _nmod32_vec_dot2_split_avx2(float * res, const float * vec1_alligned, const
 
     }
     for (; i < len; i+=8) {
-        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
-        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
-        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
-        __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
-        __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
-        __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
-        __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
-        __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
-        __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
+        // __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        // __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        // __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        // __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
+        // __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
+        // __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
+        // __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
+        // __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
+        // __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
+        __m256d v1_0 = _mm256_loadu_pd(vec1_alligned + i);
+        __m256d v1_1 = _mm256_loadu_pd(vec1_alligned + i + 4);
+        __m256d v2_0_0 = _mm256_loadu_pd(vec2_0 + i);
+        __m256d v2_0_1 = _mm256_loadu_pd(vec2_0 + i + 4);
+        __m256d v2_1_0 = _mm256_loadu_pd(vec2_1 + i);
+        __m256d v2_1_1 = _mm256_loadu_pd(vec2_1 + i + 4);
         acc_0_0 = _mm256_fmadd_pd(v1_0, v2_0_0, acc_0_0);
         acc_0_1 = _mm256_fmadd_pd(v1_1, v2_0_1, acc_0_1);
         acc_1_0 = _mm256_fmadd_pd(v1_0, v2_1_0, acc_1_0);
@@ -351,7 +381,7 @@ void _nmod32_vec_dot2_split_avx2(float * res, const float * vec1_alligned, const
     res[1] = fmod(res_1, (double)mod.n);
 }
 
-void _nmod32_vec_dot3_split_avx2(float * res, const float * vec1_alligned, const float * vec2_0, const float * vec2_1, const float * vec2_2, int64_t len,
+void _nmod32_vec_dot3_split_avx2(double * res, const double * vec1_alligned, const double * vec2_0, const double * vec2_1, const double * vec2_2, int64_t len,
                                     nmod_t mod, uint64_t pow2_precomp)
 {
     // accumulator
@@ -372,30 +402,46 @@ void _nmod32_vec_dot3_split_avx2(float * res, const float * vec1_alligned, const
     // process blocks of 8 floats at a time
     for (; i + 3 < len; i += 16)
     {
-        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
-        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
-        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
-        __m256 v1_23 = _mm256_load_ps(vec1_alligned + i + 8);
-        __m256d v1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 0));
-        __m256d v1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 1));
-        __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
-        __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
-        __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
-        __m256 v2_0_23 = _mm256_loadu_ps(vec2_0 + i + 8);
-        __m256d v2_0_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 0));
-        __m256d v2_0_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 1));
-        __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
-        __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
-        __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
-        __m256 v2_1_23 = _mm256_loadu_ps(vec2_1 + i + 8);
-        __m256d v2_1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 0));
-        __m256d v2_1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 1));
-        __m256 v2_2_01 = _mm256_loadu_ps(vec2_2 + i);
-        __m256d v2_2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 0));
-        __m256d v2_2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 1));
-        __m256 v2_2_23 = _mm256_loadu_ps(vec2_2 + i + 8);
-        __m256d v2_2_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_23, 0));
-        __m256d v2_2_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_23, 1));
+        // __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        // __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        // __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        // __m256 v1_23 = _mm256_load_ps(vec1_alligned + i + 8);
+        // __m256d v1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 0));
+        // __m256d v1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_23, 1));
+        // __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
+        // __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
+        // __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
+        // __m256 v2_0_23 = _mm256_loadu_ps(vec2_0 + i + 8);
+        // __m256d v2_0_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 0));
+        // __m256d v2_0_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_23, 1));
+        // __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
+        // __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
+        // __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
+        // __m256 v2_1_23 = _mm256_loadu_ps(vec2_1 + i + 8);
+        // __m256d v2_1_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 0));
+        // __m256d v2_1_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_23, 1));
+        // __m256 v2_2_01 = _mm256_loadu_ps(vec2_2 + i);
+        // __m256d v2_2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 0));
+        // __m256d v2_2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 1));
+        // __m256 v2_2_23 = _mm256_loadu_ps(vec2_2 + i + 8);
+        // __m256d v2_2_2 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_23, 0));
+        // __m256d v2_2_3 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_23, 1));
+        __m256d v1_0 = _mm256_loadu_pd(vec1_alligned + i);
+        __m256d v1_1 = _mm256_loadu_pd(vec1_alligned + i + 4);
+        __m256d v1_2 = _mm256_loadu_pd(vec1_alligned + i + 8);
+        __m256d v1_3 = _mm256_loadu_pd(vec1_alligned + i + 12);
+        __m256d v2_0_0 = _mm256_loadu_pd(vec2_0 + i);
+        __m256d v2_0_1 = _mm256_loadu_pd(vec2_0 + i + 4);
+        __m256d v2_0_2 = _mm256_loadu_pd(vec2_0 + i + 8);
+        __m256d v2_0_3 = _mm256_loadu_pd(vec2_0 + i + 12);
+        __m256d v2_1_0 = _mm256_loadu_pd(vec2_1 + i);
+        __m256d v2_1_1 = _mm256_loadu_pd(vec2_1 + i + 4);
+        __m256d v2_1_2 = _mm256_loadu_pd(vec2_1 + i + 8);
+        __m256d v2_1_3 = _mm256_loadu_pd(vec2_1 + i + 12);
+        __m256d v2_2_0 = _mm256_loadu_pd(vec2_2 + i);
+        __m256d v2_2_1 = _mm256_loadu_pd(vec2_2 + i + 4);
+        __m256d v2_2_2 = _mm256_loadu_pd(vec2_2 + i + 8);
+        __m256d v2_2_3 = _mm256_loadu_pd(vec2_2 + i + 12);
 
         // acc += v1 * v2
         acc_0_0 = _mm256_fmadd_pd(v1_0, v2_0_0, acc_0_0);
@@ -413,18 +459,28 @@ void _nmod32_vec_dot3_split_avx2(float * res, const float * vec1_alligned, const
 
     }
     for (; i < len; i+=8) {
-        __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
-        __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
-        __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
-        __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
-        __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
-        __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
-        __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
-        __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
-        __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
-        __m256 v2_2_01 = _mm256_loadu_ps(vec2_2 + i);
-        __m256d v2_2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 0));
-        __m256d v2_2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 1));
+        // __m256 v1_01 = _mm256_load_ps(vec1_alligned + i);
+        // __m256d v1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 0));
+        // __m256d v1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v1_01, 1));
+        // __m256 v2_0_01 = _mm256_loadu_ps(vec2_0 + i);
+        // __m256d v2_0_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 0));
+        // __m256d v2_0_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_0_01, 1));
+        // __m256 v2_1_01 = _mm256_loadu_ps(vec2_1 + i);
+        // __m256d v2_1_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 0));
+        // __m256d v2_1_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_1_01, 1));
+        // __m256 v2_2_01 = _mm256_loadu_ps(vec2_2 + i);
+        // __m256d v2_2_0 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 0));
+        // __m256d v2_2_1 = _mm256_cvtps_pd(_mm256_extractf128_ps(v2_2_01, 1));
+
+        __m256d v1_0 = _mm256_loadu_pd(vec1_alligned + i);
+        __m256d v1_1 = _mm256_loadu_pd(vec1_alligned + i + 4);
+        __m256d v2_0_0 = _mm256_loadu_pd(vec2_0 + i);
+        __m256d v2_0_1 = _mm256_loadu_pd(vec2_0 + i + 4);
+        __m256d v2_1_0 = _mm256_loadu_pd(vec2_1 + i);
+        __m256d v2_1_1 = _mm256_loadu_pd(vec2_1 + i + 4);
+        __m256d v2_2_0 = _mm256_loadu_pd(vec2_2 + i);
+        __m256d v2_2_1 = _mm256_loadu_pd(vec2_2 + i + 4);
+
         acc_0_0 = _mm256_fmadd_pd(v1_0, v2_0_0, acc_0_0);
         acc_0_1 = _mm256_fmadd_pd(v1_1, v2_0_1, acc_0_1);
         acc_1_0 = _mm256_fmadd_pd(v1_0, v2_1_0, acc_1_0);
@@ -467,9 +523,9 @@ void _nmod32_vec_dot3_split_avx2(float * res, const float * vec1_alligned, const
 
 }
 
-static inline void _avx2_matrix_vector_product(float * vec_res,
-                                               const float * mat,
-                                               const float * vec,
+static inline void _avx2_matrix_vector_product(double * vec_res,
+                                               const double * mat,
+                                               const double * vec,
                                                const uint32_t * dst,
                                                const uint32_t ncols,
                                                const uint32_t nrows,
@@ -517,7 +573,7 @@ FLINT_FORCE_INLINE uint64_t _mm512_hsum(__m512i a)
     return _mm512_reduce_add_epi64(a);
 }
 
-float _nmod32_vec_dot_split_avx512(const float * vec1_aligned, const float * vec2, int64_t len,
+double _nmod32_vec_dot_split_avx512(const double * vec1_aligned, const double * vec2, int64_t len,
                                     nmod_t mod, uint64_t pow2_precomp)
 {
     __m512d acc_0 = _mm512_setzero_pd();
@@ -529,19 +585,28 @@ float _nmod32_vec_dot_split_avx512(const float * vec1_aligned, const float * vec
 
     for (; i + 31 < len; i += 32)
     {
-        __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
-        __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
-        __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
-        __m512 v1_23 = _mm512_load_ps(vec1_aligned + i + 16);
-        __m512d v1_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 0));
-        __m512d v1_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 1));
+        // __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
+        // __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
+        // __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
+        // __m512 v1_23 = _mm512_load_ps(vec1_aligned + i + 16);
+        // __m512d v1_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 0));
+        // __m512d v1_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 1));
 
-        __m512 v2_01 = _mm512_loadu_ps(vec2 + i);
-        __m512d v2_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_01, 0));
-        __m512d v2_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_01, 1));
-        __m512 v2_23 = _mm512_loadu_ps(vec2 + i + 16);
-        __m512d v2_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_23, 0));
-        __m512d v2_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_23, 1));
+        // __m512 v2_01 = _mm512_loadu_ps(vec2 + i);
+        // __m512d v2_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_01, 0));
+        // __m512d v2_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_01, 1));
+        // __m512 v2_23 = _mm512_loadu_ps(vec2 + i + 16);
+        // __m512d v2_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_23, 0));
+        // __m512d v2_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_23, 1));
+
+        __m512d v1_0 = _mm512_loadu_pd(vec1_aligned + i);
+        __m512d v1_1 = _mm512_loadu_pd(vec1_aligned + i + 8);
+        __m512d v1_2 = _mm512_loadu_pd(vec1_aligned + i + 16);
+        __m512d v1_3 = _mm512_loadu_pd(vec1_aligned + i + 24);
+        __m512d v2_0 = _mm512_loadu_pd(vec2 + i);
+        __m512d v2_1 = _mm512_loadu_pd(vec2 + i + 8);
+        __m512d v2_2 = _mm512_loadu_pd(vec2 + i + 16);
+        __m512d v2_3 = _mm512_loadu_pd(vec2 + i + 24);
 
         acc_0 = _mm512_fmadd_pd(v1_0, v2_0, acc_0);
         acc_1 = _mm512_fmadd_pd(v1_1, v2_1, acc_1);
@@ -551,13 +616,18 @@ float _nmod32_vec_dot_split_avx512(const float * vec1_aligned, const float * vec
 
     for (; i + 15 < len; i += 16)
     {
-        __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
-        __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
-        __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
+        // __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
+        // __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
+        // __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
 
-        __m512 v2_01 = _mm512_loadu_ps(vec2 + i);
-        __m512d v2_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_01, 0));
-        __m512d v2_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_01, 1));
+        // __m512 v2_01 = _mm512_loadu_ps(vec2 + i);
+        // __m512d v2_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_01, 0));
+        // __m512d v2_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_01, 1));
+
+        __m512d v1_0 = _mm512_loadu_pd(vec1_aligned + i);
+        __m512d v1_1 = _mm512_loadu_pd(vec1_aligned + i + 8);
+        __m512d v2_0 = _mm512_loadu_pd(vec2 + i);
+        __m512d v2_1 = _mm512_loadu_pd(vec2 + i + 8);
 
         acc_0 = _mm512_fmadd_pd(v1_0, v2_0, acc_0);
         acc_1 = _mm512_fmadd_pd(v1_1, v2_1, acc_1);
@@ -575,7 +645,7 @@ float _nmod32_vec_dot_split_avx512(const float * vec1_aligned, const float * vec
     res = fmod(res, (double)mod.n);
 
     return res;
-}void _nmod32_vec_dot2_split_avx512(float * res, const float * vec1_aligned, const float * vec2_0, const float * vec2_1, int64_t len,
+}void _nmod32_vec_dot2_split_avx512(double * res, const double * vec1_aligned, const double * vec2_0, const double * vec2_1, int64_t len,
                                     nmod_t mod, uint64_t pow2_precomp)
 {
     __m512d acc_0_0 = _mm512_setzero_pd();
@@ -591,26 +661,38 @@ float _nmod32_vec_dot_split_avx512(const float * vec1_aligned, const float * vec
 
     for (; i + 31 < len; i += 32)
     {
-        __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
-        __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
-        __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
-        __m512 v1_23 = _mm512_load_ps(vec1_aligned + i + 16);
-        __m512d v1_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 0));
-        __m512d v1_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 1));
+        // __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
+        // __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
+        // __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
+        // __m512 v1_23 = _mm512_load_ps(vec1_aligned + i + 16);
+        // __m512d v1_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 0));
+        // __m512d v1_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 1));
 
-        __m512 v2_0_01 = _mm512_loadu_ps(vec2_0 + i);
-        __m512d v2_0_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 0));
-        __m512d v2_0_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 1));
-        __m512 v2_0_23 = _mm512_loadu_ps(vec2_0 + i + 16);
-        __m512d v2_0_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_23, 0));
-        __m512d v2_0_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_23, 1));
+        // __m512 v2_0_01 = _mm512_loadu_ps(vec2_0 + i);
+        // __m512d v2_0_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 0));
+        // __m512d v2_0_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 1));
+        // __m512 v2_0_23 = _mm512_loadu_ps(vec2_0 + i + 16);
+        // __m512d v2_0_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_23, 0));
+        // __m512d v2_0_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_23, 1));
 
-        __m512 v2_1_01 = _mm512_loadu_ps(vec2_1 + i);
-        __m512d v2_1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 0));
-        __m512d v2_1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 1));
-        __m512 v2_1_23 = _mm512_loadu_ps(vec2_1 + i + 16);
-        __m512d v2_1_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_23, 0));
-        __m512d v2_1_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_23, 1));
+        // __m512 v2_1_01 = _mm512_loadu_ps(vec2_1 + i);
+        // __m512d v2_1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 0));
+        // __m512d v2_1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 1));
+        // __m512 v2_1_23 = _mm512_loadu_ps(vec2_1 + i + 16);
+        // __m512d v2_1_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_23, 0));
+        // __m512d v2_1_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_23, 1));
+        __m512d v1_0 = _mm512_loadu_pd(vec1_aligned + i);
+        __m512d v1_1 = _mm512_loadu_pd(vec1_aligned + i + 8);
+        __m512d v1_2 = _mm512_loadu_pd(vec1_aligned + i + 16);
+        __m512d v1_3 = _mm512_loadu_pd(vec1_aligned + i + 24);
+        __m512d v2_0_0 = _mm512_loadu_pd(vec2_0 + i);
+        __m512d v2_0_1 = _mm512_loadu_pd(vec2_0 + i + 8);
+        __m512d v2_0_2 = _mm512_loadu_pd(vec2_0 + i + 16);
+        __m512d v2_0_3 = _mm512_loadu_pd(vec2_0 + i + 24);
+        __m512d v2_1_0 = _mm512_loadu_pd(vec2_1 + i);
+        __m512d v2_1_1 = _mm512_loadu_pd(vec2_1 + i + 8);
+        __m512d v2_1_2 = _mm512_loadu_pd(vec2_1 + i + 16);
+        __m512d v2_1_3 = _mm512_loadu_pd(vec2_1 + i + 24);
 
         acc_0_0 = _mm512_fmadd_pd(v1_0, v2_0_0, acc_0_0);
         acc_0_1 = _mm512_fmadd_pd(v1_1, v2_0_1, acc_0_1);
@@ -624,17 +706,24 @@ float _nmod32_vec_dot_split_avx512(const float * vec1_aligned, const float * vec
 
     for (; i + 15 < len; i += 16)
     {
-        __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
-        __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
-        __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
+        // __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
+        // __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
+        // __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
 
-        __m512 v2_0_01 = _mm512_loadu_ps(vec2_0 + i);
-        __m512d v2_0_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 0));
-        __m512d v2_0_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 1));
+        // __m512 v2_0_01 = _mm512_loadu_ps(vec2_0 + i);
+        // __m512d v2_0_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 0));
+        // __m512d v2_0_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 1));
 
-        __m512 v2_1_01 = _mm512_loadu_ps(vec2_1 + i);
-        __m512d v2_1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 0));
-        __m512d v2_1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 1));
+        // __m512 v2_1_01 = _mm512_loadu_ps(vec2_1 + i);
+        // __m512d v2_1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 0));
+        // __m512d v2_1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 1));
+
+        __m512d v1_0 = _mm512_loadu_pd(vec1_aligned + i);
+        __m512d v1_1 = _mm512_loadu_pd(vec1_aligned + i + 8);
+        __m512d v2_0_0 = _mm512_loadu_pd(vec2_0 + i);
+        __m512d v2_0_1 = _mm512_loadu_pd(vec2_0 + i + 8);
+        __m512d v2_1_0 = _mm512_loadu_pd(vec2_1 + i);
+        __m512d v2_1_1 = _mm512_loadu_pd(vec2_1 + i + 8);
 
         acc_0_0 = _mm512_fmadd_pd(v1_0, v2_0_0, acc_0_0);
         acc_0_1 = _mm512_fmadd_pd(v1_1, v2_0_1, acc_0_1);
@@ -661,7 +750,7 @@ float _nmod32_vec_dot_split_avx512(const float * vec1_aligned, const float * vec
     res[1] = fmod(res_1, (double)mod.n);
 }
 
-void _nmod32_vec_dot3_split_avx512(float * res, const float * vec1_aligned, const float * vec2_0, const float * vec2_1, const float * vec2_2, int64_t len,
+void _nmod32_vec_dot3_split_avx512(double * res, const double * vec1_aligned, const double * vec2_0, const double * vec2_1, const double * vec2_2, int64_t len,
                                     nmod_t mod, uint64_t pow2_precomp)
 {
     __m512d acc_0_0 = _mm512_setzero_pd();
@@ -681,33 +770,50 @@ void _nmod32_vec_dot3_split_avx512(float * res, const float * vec1_aligned, cons
 
     for (; i + 31 < len; i += 32)
     {
-        __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
-        __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
-        __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
-        __m512 v1_23 = _mm512_load_ps(vec1_aligned + i + 16);
-        __m512d v1_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 0));
-        __m512d v1_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 1));
+        // __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
+        // __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
+        // __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
+        // __m512 v1_23 = _mm512_load_ps(vec1_aligned + i + 16);
+        // __m512d v1_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 0));
+        // __m512d v1_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_23, 1));
 
-        __m512 v2_0_01 = _mm512_loadu_ps(vec2_0 + i);
-        __m512d v2_0_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 0));
-        __m512d v2_0_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 1));
-        __m512 v2_0_23 = _mm512_loadu_ps(vec2_0 + i + 16);
-        __m512d v2_0_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_23, 0));
-        __m512d v2_0_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_23, 1));
+        // __m512 v2_0_01 = _mm512_loadu_ps(vec2_0 + i);
+        // __m512d v2_0_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 0));
+        // __m512d v2_0_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 1));
+        // __m512 v2_0_23 = _mm512_loadu_ps(vec2_0 + i + 16);
+        // __m512d v2_0_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_23, 0));
+        // __m512d v2_0_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_23, 1));
 
-        __m512 v2_1_01 = _mm512_loadu_ps(vec2_1 + i);
-        __m512d v2_1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 0));
-        __m512d v2_1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 1));
-        __m512 v2_1_23 = _mm512_loadu_ps(vec2_1 + i + 16);
-        __m512d v2_1_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_23, 0));
-        __m512d v2_1_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_23, 1));
+        // __m512 v2_1_01 = _mm512_loadu_ps(vec2_1 + i);
+        // __m512d v2_1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 0));
+        // __m512d v2_1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 1));
+        // __m512 v2_1_23 = _mm512_loadu_ps(vec2_1 + i + 16);
+        // __m512d v2_1_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_23, 0));
+        // __m512d v2_1_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_23, 1));
 
-        __m512 v2_2_01 = _mm512_loadu_ps(vec2_2 + i);
-        __m512d v2_2_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_01, 0));
-        __m512d v2_2_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_01, 1));
-        __m512 v2_2_23 = _mm512_loadu_ps(vec2_2 + i + 16);
-        __m512d v2_2_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_23, 0));
-        __m512d v2_2_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_23, 1));
+        // __m512 v2_2_01 = _mm512_loadu_ps(vec2_2 + i);
+        // __m512d v2_2_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_01, 0));
+        // __m512d v2_2_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_01, 1));
+        // __m512 v2_2_23 = _mm512_loadu_ps(vec2_2 + i + 16);
+        // __m512d v2_2_2 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_23, 0));
+        // __m512d v2_2_3 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_23, 1));
+
+        __m512d v1_0 = _mm512_loadu_pd(vec1_aligned + i);
+        __m512d v1_1 = _mm512_loadu_pd(vec1_aligned + i + 8);
+        __m512d v1_2 = _mm512_loadu_pd(vec1_aligned + i + 16);
+        __m512d v1_3 = _mm512_loadu_pd(vec1_aligned + i + 24);
+        __m512d v2_0_0 = _mm512_loadu_pd(vec2_0 + i);
+        __m512d v2_0_1 = _mm512_loadu_pd(vec2_0 + i + 8);
+        __m512d v2_0_2 = _mm512_loadu_pd(vec2_0 + i + 16);
+        __m512d v2_0_3 = _mm512_loadu_pd(vec2_0 + i + 24);
+        __m512d v2_1_0 = _mm512_loadu_pd(vec2_1 + i);
+        __m512d v2_1_1 = _mm512_loadu_pd(vec2_1 + i + 8);
+        __m512d v2_1_2 = _mm512_loadu_pd(vec2_1 + i + 16);
+        __m512d v2_1_3 = _mm512_loadu_pd(vec2_1 + i + 24);
+        __m512d v2_2_0 = _mm512_loadu_pd(vec2_2 + i);
+        __m512d v2_2_1 = _mm512_loadu_pd(vec2_2 + i + 8);
+        __m512d v2_2_2 = _mm512_loadu_pd(vec2_2 + i + 16);
+        __m512d v2_2_3 = _mm512_loadu_pd(vec2_2 + i + 24);
 
         acc_0_0 = _mm512_fmadd_pd(v1_0, v2_0_0, acc_0_0);
         acc_0_1 = _mm512_fmadd_pd(v1_1, v2_0_1, acc_0_1);
@@ -725,21 +831,30 @@ void _nmod32_vec_dot3_split_avx512(float * res, const float * vec1_aligned, cons
 
     for (; i + 15 < len; i += 16)
     {
-        __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
-        __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
-        __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
+        // __m512 v1_01 = _mm512_load_ps(vec1_aligned + i);
+        // __m512d v1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 0));
+        // __m512d v1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v1_01, 1));
 
-        __m512 v2_0_01 = _mm512_loadu_ps(vec2_0 + i);
-        __m512d v2_0_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 0));
-        __m512d v2_0_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 1));
+        // __m512 v2_0_01 = _mm512_loadu_ps(vec2_0 + i);
+        // __m512d v2_0_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 0));
+        // __m512d v2_0_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_0_01, 1));
 
-        __m512 v2_1_01 = _mm512_loadu_ps(vec2_1 + i);
-        __m512d v2_1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 0));
-        __m512d v2_1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 1));
+        // __m512 v2_1_01 = _mm512_loadu_ps(vec2_1 + i);
+        // __m512d v2_1_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 0));
+        // __m512d v2_1_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_1_01, 1));
 
-        __m512 v2_2_01 = _mm512_loadu_ps(vec2_2 + i);
-        __m512d v2_2_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_01, 0));
-        __m512d v2_2_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_01, 1));
+        // __m512 v2_2_01 = _mm512_loadu_ps(vec2_2 + i);
+        // __m512d v2_2_0 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_01, 0));
+        // __m512d v2_2_1 = _mm512_cvtps_pd(_mm512_extractf32x8_ps(v2_2_01, 1));
+
+        __m512d v1_0 = _mm512_loadu_pd(vec1_aligned + i);
+        __m512d v1_1 = _mm512_loadu_pd(vec1_aligned + i + 8);
+        __m512d v2_0_0 = _mm512_loadu_pd(vec2_0 + i);
+        __m512d v2_0_1 = _mm512_loadu_pd(vec2_0 + i + 8);
+        __m512d v2_1_0 = _mm512_loadu_pd(vec2_1 + i);
+        __m512d v2_1_1 = _mm512_loadu_pd(vec2_1 + i + 8);
+        __m512d v2_2_0 = _mm512_loadu_pd(vec2_2 + i);
+        __m512d v2_2_1 = _mm512_loadu_pd(vec2_2 + i + 8);
 
         acc_0_0 = _mm512_fmadd_pd(v1_0, v2_0_0, acc_0_0);
         acc_0_1 = _mm512_fmadd_pd(v1_1, v2_0_1, acc_0_1);
@@ -774,9 +889,9 @@ void _nmod32_vec_dot3_split_avx512(float * res, const float * vec1_aligned, cons
     res[2] = fmod(res_2, (double)mod.n);
 }
 
-static inline void _avx512_matrix_vector_product(float * vec_res,
-                                                 const float * mat,
-                                                 const float * vec,
+static inline void _avx512_matrix_vector_product(double * vec_res,
+                                                 const double * mat,
+                                                 const double * vec,
                                                  const uint32_t * dst,
                                                  const uint32_t ncols,
                                                  const uint32_t nrows,

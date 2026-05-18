@@ -184,8 +184,9 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
             }
         }
         for (; j < len; j += 16) {
-            __m256 redv_float = _mm256_loadu_ps(cfs + j);
-            redv = _mm512_cvtps_pd(redv_float);
+            // __m256 redv_float = _mm256_loadu_ps(cfs + j);
+            // redv = _mm512_cvtps_pd(redv_float);
+            redv = _mm512_loadu_pd(cfs + j);
             drv = _mm512_setr_pd(
                 dr[ds[j]],
                 dr[ds[j+1]],
@@ -210,8 +211,9 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
             dr[ds[j+6]] = res[6];
             dr[ds[j+7]] = res[7];
             
-            redv_float = _mm256_loadu_ps(cfs + j + 8);
-            redv = _mm512_cvtps_pd(redv_float);
+            // redv_float = _mm256_loadu_ps(cfs + j + 8);
+            // redv = _mm512_cvtps_pd(redv_float);
+            redv = _mm512_loadu_pd(cfs + j + 8);
             drv = _mm512_setr_pd(
                 dr[ds[j+8]],
                 dr[ds[j+9]],
@@ -252,10 +254,12 @@ static hm_t *reduce_dense_row_by_known_pivots_sparse_ff_21(
         }
         // try unrolling more
         for (; j < len; j +=8) {
-            __m128 lo = _mm_loadu_ps(cfs + j);
-            __m128 hi = _mm_loadu_ps(cfs + j + 4);
-            redv1 = _mm256_cvtps_pd(lo);
-            redv2 = _mm256_cvtps_pd(hi);
+            // __m128 lo = _mm_loadu_ps(cfs + j);
+            // __m128 hi = _mm_loadu_ps(cfs + j + 4);
+            // redv1 = _mm256_cvtps_pd(lo);
+            // redv2 = _mm256_cvtps_pd(hi);
+            redv1 = _mm256_loadu_pd(cfs + j);
+            redv2 = _mm256_loadu_pd(cfs + j + 4);
             drv1   = _mm256_setr_pd(
                 dr[ds[j]],
                 dr[ds[j+1]],
